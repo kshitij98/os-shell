@@ -56,9 +56,7 @@ char *line_read()
 	while (1) {
 		ch = getchar();
 
-		if (ch == EOF) {
-			return buff;
-		} else if (ch == '\n') {
+		if (ch == '\n' || ch == EOF) {
 			buff[limit] = '\0';
 			return buff;
 		} else {
