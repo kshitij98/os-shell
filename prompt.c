@@ -16,7 +16,7 @@ int inside_home(char *path, char *home_dir) {
 
 
 // <username@system_name:curr_dir>
-char *print_prompt() {
+void print_prompt() {
 	char *username = getpwuid(geteuid()) -> pw_name;
 	char *home_dir = getpwuid(geteuid()) -> pw_dir;
 	char system_name[1023];
@@ -30,8 +30,6 @@ char *print_prompt() {
 		printf("%s%s<%s@%s:%s~%s>%s", BOLD_TEXT, GREEN_TEXT, username, system_name, BLUE_TEXT, curr_dir + strlen(home_dir), RESET_TEXT);
 	else
 		printf("%s%s<%s@%s:%s%s>%s", BOLD_TEXT, GREEN_TEXT, username, system_name, BLUE_TEXT, curr_dir, RESET_TEXT);
-
-	return "asd";
 }
 
 
