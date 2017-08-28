@@ -41,52 +41,14 @@ char **string_tokenizer(char *line)
 }
 
 
-char *line_read()
-{
-	int line_size = LINE_BUFFSIZE;
-	char *buff = malloc(line_size * sizeof(char));
-	int limit = 0;
-	char ch = 0;
-
-	if (buff == NULL) {
-		perror( OS_SHELL MEM_ERR_MSG );
-		exit(MEM_ERR);
-	}
-
-	while (1) {
-		ch = getchar();
-
-		if (ch == EOF) {
-			return buff;
-		} else if (ch == '\n') {
-			buff[limit] = '\0';
-			return buff;
-		} else {
-			buff[limit] = ch;
-		}
-
-		++limit;
-
-		if (limit >= line_size) {
-			line_size += LINE_BUFFSIZE;
-			buff = realloc(buff, line_size * sizeof(char));
-
-			if (buff == NULL) {
-				perror( OS_SHELL MEM_ERR_MSG );
-				exit(MEM_ERR);
-			}
-		}
-	}
-}
-
 #ifdef _LOCAL_TESTING
 
 int main()
 {
 	char *line;
 	//	scanf("%[^\n]", line);
-	line = line_read();
-	char **tk = string_tokenizer(line);
+	// line = line_read();
+	char **tk = string_tokenizer("ls -l -a -1");
 	int i = 0;
 	while (tk[i] != NULL) {
 		printf("%s\n", tk[i]);
