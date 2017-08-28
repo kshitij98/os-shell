@@ -1,3 +1,5 @@
+#ifndef _PROMPT_
+#define _PROMPT_ 1
 #define TOKEN_BUFFSIZE 128
 #define TOKEN_DELIMITER " \t\r\n\0"
 #define LINE_BUFFSIZE 2048
@@ -8,3 +10,5 @@
 
 void print_prompt();
 char *line_read();
+
+#endif

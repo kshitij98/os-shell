@@ -23,7 +23,7 @@ void print_prompt() {
 	char *home_dir = getpwuid(geteuid()) -> pw_dir;
 	char system_name[1023];
 	gethostname(system_name, 1023);
-	
+
 	char curr_dir[1023];
 	if (getcwd(curr_dir, 1023) == NULL)
 		perror("Couldn't fetch current working directory!\ngetcurr_dir() error");
@@ -34,7 +34,7 @@ void print_prompt() {
 		printf("%s%s<%s@%s:%s%s>%s ", BOLD_TEXT, GREEN_TEXT, username, system_name, BLUE_TEXT, curr_dir, RESET_TEXT);
 }
 
-
+/*
 char *line_read()
 {
 	int line_size = LINE_BUFFSIZE;
@@ -72,7 +72,7 @@ char *line_read()
 		}
 	}
 }
-
+*/
 
 #ifdef _LOCAL_TESTING
 
@@ -80,7 +80,7 @@ int main()
 {
 	char *line;
 
-	while (1) {	
+	while (1) {
 		print_prompt();
 		line = line_read();
 		printf("%s\n", line);

@@ -55,7 +55,7 @@ void itoa(long long num, char *snum)
 
 int builtin_exit(char **arg)
 {
-	fprintf(stderr, "Exit os-shell!");
+	fprintf(stderr, "Exit os-shell!\n");
 	exit(0);
 }
 
@@ -63,20 +63,20 @@ int builtin_pinfo(char **arg)
 {
 	pid_t proc_id;
 	int i;
-	fprintf(stderr, "checkpoint 1\n");
+	//	fprintf(stderr, "checkpoint 1\n");
 	if (arg == NULL)
 		return -1;
-	fprintf(stderr, "checkpoint 2\n");
+	//	fprintf(stderr, "checkpoint 2\n");
 	if (arg[1] == NULL)
 		proc_id = getpid();
-	fprintf(stderr, "checkpoint 3\n");
+	//	fprintf(stderr, "checkpoint 3\n");
 	//char *sproc_id = malloc(sizeof(char) * 64);
 	//itoa(proc_id, sproc_id);
 	char path[100] = "/proc/";
 	strcat(path, arg[1]);
 	strcat(path, "/stat");
 	FILE *fp = fopen(path, "r");
-	fprintf(stderr, "checkpoint 4\n");
+	//	fprintf(stderr, "checkpoint 4\n");
 	if (fp == NULL) {
 		perror("process not identified!");
 		return -1;

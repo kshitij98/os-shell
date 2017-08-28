@@ -89,7 +89,6 @@ Str *string_tokenizer(char *s, char *sep, char esc, unsigned int *q)
         unsigned int e;
 		unsigned int i = 0;
         char *p;
-
         list[i++] = s;
 
         for (e = 0, p = s; *p; ++p) {

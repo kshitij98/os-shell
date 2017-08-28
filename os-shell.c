@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "prompt.h"
 #include "parser.h"
+#include "builtins.h"
 
 int main() {
 	char *line;
@@ -11,11 +12,12 @@ int main() {
 		line = line_read();
 
 		// Parse command
-		args = string_tokenizer(line);
-		
+		unsigned int len;
+		args = string_tokenizer(line, SEP_LIST, ESC, &len);
+
 		// Execute command
 		int i = 0;
-		while (args[i] != NULL) {
+		while (i < len) {
 			printf("%s\n", args[i]);
 			i++;
 		}
