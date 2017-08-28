@@ -1,43 +1,135 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
+
 #include "parser.h"
 
 #define MEM_ERR_MSG "Memory not allocated"
 #define MEM_ERR -1
 #define OS_SHELL "os-shell : "
 
-char **string_tokenizer(char *line)
-{
-	int buff_size = TOKEN_BUFFSIZE;
-	int limit = 0;
-	char **tokens = malloc(buff_size * sizeof(char*));
-	char *token;
 
-	if (tokens == NULL) {
+
+char *line_read()
+{
+	int line_size = LINE_BUFFSIZE;
+	char *buff = malloc(line_size * sizeof(char));
+	int limit = 0;
+	char ch = 0;
+
+	if (buff == NULL) {
 		perror( OS_SHELL MEM_ERR_MSG );
 		exit(MEM_ERR);
 	}
 
-	token = strtok(line, TOKEN_DELIMITER);
-	while (token != NULL) {
-		tokens[limit] = token;
-		limit++;
-		if (limit >= TOKEN_BUFFSIZE) {
-			buff_size += TOKEN_BUFFSIZE;
-			tokens = realloc(tokens, buff_size * sizeof(char*));
+	while (1) {
+		ch = getchar();
 
-			if (tokens == NULL) {
+		if (ch == '\n' || ch == EOF) {
+			buff[limit] = '\0';
+			return buff;
+		} else {
+			buff[limit] = ch;
+		}
+
+		++limit;
+
+		if (limit >= line_size) {
+			line_size += LINE_BUFFSIZE;
+			buff = realloc(buff, line_size * sizeof(char));
+
+			if (buff == NULL) {
 				perror( OS_SHELL MEM_ERR_MSG );
 				exit(MEM_ERR);
 			}
 		}
-
-		token = strtok(NULL, TOKEN_DELIMITER);
 	}
+}
 
-	tokens[limit] = NULL;
-	return tokens;
+
+unsigned int number_of_elements(const char *s, char *sep, char esc)
+{
+    unsigned int q;
+	unsigned int e;
+    const char *p;
+	int sep_len = strlen(sep);
+	int flag = 0;
+	int j = 0;
+
+    for (e = 0, q = 1, p = s; *p; ++p) {
+		flag = 0;
+		for (j = 0; j < sep_len; j++) {
+			if (sep[j] == *p)
+				flag = 1;
+		}
+
+        if (*p == esc)
+            e = !e;
+        else if (flag)
+            q += !e;
+        else
+			e = 0;
+    }
+
+    return q;
+}
+
+Str *string_tokenizer(char *s, char *sep, char esc, unsigned int *q)
+{
+    Str *list = NULL;
+	int sep_len = strlen(sep);
+	int j = 0;
+	int flag = 0;
+
+    *q = number_of_elements(s, sep, esc);
+    list = malloc((*q + 1) * sizeof(Str));
+
+    if(list != NULL) {
+        unsigned int e;
+		unsigned int i = 0;
+        char *p;
+
+        list[i++] = s;
+
+        for (e = 0, p = s; *p; ++p) {
+			flag = 0;
+			for (j = 0; j < sep_len; j++) {
+				if (sep[j] == *p)
+					flag = 1;
+			}
+
+            if (*p == esc) {
+                e = !e;
+            } else if (flag && !e) {
+                list[i++] = p + 1;
+                *p = '\0';
+            } else {
+                e = 0;
+            }
+        }
+    }
+
+	list[*q] = NULL;
+    return list;
+}
+
+Str esc_stripper(Str word, char esc)
+{
+	int i = 0;
+	int shift = 0;
+	while (word[i] != '\0') {
+		if (word[i] == esc && word[i + 1] != '\0' &&
+			!isalpha(word[i+1])) {
+			++shift;
+		} else {
+			word[i - shift] = word[i];
+		}
+		++i;
+	}
+	word[i - shift] = '\0';
+
+	return word;
 }
 
 
@@ -46,12 +138,13 @@ char **string_tokenizer(char *line)
 int main()
 {
 	char *line;
-	//	scanf("%[^\n]", line);
-	// line = line_read();
-	char **tk = string_tokenizer("ls -l -a -1");
+
+	line = line_read();
+	unsigned int len = 0;
+	char **tk = string_tokenizer(line, SEP_LIST, ESC, &len);
 	int i = 0;
-	while (tk[i] != NULL) {
-		printf("%s\n", tk[i]);
+	while (i < len) {
+		printf("%s-\n", esc_stripper(tk[i], ESC));
 		i++;
 	}
 
