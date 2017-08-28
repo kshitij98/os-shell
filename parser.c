@@ -138,6 +138,7 @@ Str esc_stripper(Str word, char esc)
 int main()
 {
 	char *line;
+
 	line = line_read();
 	unsigned int len = 0;
 	char **tk = string_tokenizer(line, SEP_LIST, ESC, &len);

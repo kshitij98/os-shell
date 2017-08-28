@@ -4,6 +4,7 @@ char *line_read(void);
 #define TOKEN_DELIMITER " \t\r\n\0"
 #define LINE_BUFFSIZE 2048
 
+char **string_tokenizer(char *line);
 
 #define SEP_LIST " \t\n\r"
 #define CMD_SEP ';'
