@@ -4,6 +4,7 @@
 #include <pwd.h>
 #include "parser.h"
 #include <stdio.h>
+#include <errno.h>
 
 int builtin_cd(char **arg)
 {
@@ -20,7 +21,7 @@ int builtin_cd(char **arg)
 	}
 
 	if (chdir(dest_dir) != 0) {
-		perror("'cd' Failed!");
+		fprintf(stderr, "'cd' failed! %s : %s\n", strerror(errno), dest_dir);
 		return 1;
 	}
 
@@ -28,7 +29,7 @@ int builtin_cd(char **arg)
 }
 
 
-//#ifdef _LOCAL_TESTING
+#ifdef _LOCAL_TESTING
 
 int main()
 {
@@ -41,4 +42,4 @@ int main()
 	return 0;
 }
 
-//#endif
+#endif
