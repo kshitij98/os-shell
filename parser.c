@@ -118,6 +118,10 @@ Str esc_stripper(Str word, char esc)
 {
 	int i = 0;
 	int shift = 0;
+
+	if (word == NULL)
+		return NULL;
+
 	while (word[i] != '\0') {
 		if (word[i] == esc && word[i + 1] != '\0' &&
 			!isalpha(word[i+1])) {
