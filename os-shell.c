@@ -4,6 +4,7 @@
 #include "prompt.h"
 #include "parser.h"
 #include "builtins.h"
+#include "background.h"
 
 int main() {
 	char *line;
