@@ -81,6 +81,7 @@ Str *string_tokenizer(char *s, char *sep, char esc, unsigned int *q)
 	int sep_len = strlen(sep);
 	int j = 0;
 	int flag = 0;
+	int shift = 0;
 
     *q = number_of_elements(s, sep, esc);
     list = malloc((*q + 1) * sizeof(Str));
@@ -108,8 +109,18 @@ Str *string_tokenizer(char *s, char *sep, char esc, unsigned int *q)
             }
         }
     }
-
 	list[*q] = NULL;
+	j = 0;
+	while (list[j] != NULL) {
+		if (strlen(list[j]) == 0)
+			++shift;
+		else
+			list[j - shift] = list[j];
+		++j;
+	}
+	*q = j - shift;
+	list[j - shift] = NULL;
+
     return list;
 }
 

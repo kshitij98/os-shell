@@ -6,11 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include "builtins.h"
 
-#define BUILTIN(str) builtin_##str
-#define N 75
-#define M 52
-#define BUILTIN_LEN 3
 
 char *builtin_str[] = {
 	"cd",
@@ -18,11 +15,12 @@ char *builtin_str[] = {
 	"exit"
 };
 
-int builtin_cd(char **arg)
+
+int builtin_cd(char **arg, int argc)
 {
 	const char *dest_dir;
 
-	if (arg[1] == NULL) {
+	if (argc < 2 || arg[1] == NULL) {
 		dest_dir = getpwuid(getuid()) -> pw_dir;
 		if (dest_dir == NULL) {
 			perror("Could not get home directory.");
@@ -53,32 +51,32 @@ void itoa(long long num, char *snum)
 	return;
 }
 
-int builtin_exit(char **arg)
+int builtin_exit(char **arg, int argc)
 {
 	fprintf(stderr, "Exit os-shell!\n");
 	exit(0);
 }
 
-int builtin_pinfo(char **arg)
+int builtin_pinfo(char **arg, int argc)
 {
 	pid_t proc_id;
 	int i;
-	//	fprintf(stderr, "checkpoint 1\n");
+
 	if (arg == NULL)
 		return -1;
-	//	fprintf(stderr, "checkpoint 2\n");
-	if (arg[1] == NULL)
+
+	if (argc < 2 || arg[1] == NULL) {
 		proc_id = getpid();
-	//	fprintf(stderr, "checkpoint 3\n");
-	//char *sproc_id = malloc(sizeof(char) * 64);
-	//itoa(proc_id, sproc_id);
+		arg[1] = malloc(sizeof(char) * 15);
+		itoa(proc_id, arg[1]);
+	}
+
 	char path[100] = "/proc/";
 	strcat(path, arg[1]);
 	strcat(path, "/stat");
 	FILE *fp = fopen(path, "r");
-	//	fprintf(stderr, "checkpoint 4\n");
 	if (fp == NULL) {
-		perror("process not identified!");
+		fprintf(stderr, "process with pid: %s not identified!\n", arg[1]);
 		return -1;
 	}
 
@@ -93,7 +91,7 @@ int builtin_pinfo(char **arg)
 }
 
 
-int (*builtin_call[]) (char**) = {
+int (*builtin_call[]) (char**, int) = {
 	&builtin_cd,
 	&builtin_pinfo,
 	&builtin_exit
@@ -114,7 +112,7 @@ int main()
 		st[1] = esc_stripper(st[1], ESC);
 		for (i = 0; i < BUILTIN_LEN; i++) {
 			if (strcmp(st[0], builtin_str[i]) == 0) {
-				(builtin_call[i])(st);
+				(builtin_call[i])(st, len);
 			}
 		}
 	}
