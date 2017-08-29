@@ -12,9 +12,15 @@
 char *builtin_str[] = {
 	"cd",
 	"pinfo",
-	"exit"
+	"exit",
+	"pwd"
 };
 
+int builtin_echo(char *arg)
+{
+	printf("%s\n", arg);
+	return 0;
+}
 
 int builtin_cd(char **arg, int argc)
 {
@@ -90,11 +96,26 @@ int builtin_pinfo(char **arg, int argc)
 	return 0;
 }
 
+int builtin_pwd(char **arg, int argc)
+{
+	const int size = 1024;
+	char *cwd = calloc(size, sizeof(char));
+
+	if (cwd == NULL) {
+		fprintf(stderr, "Error! %s\n", errno);
+		return -1;
+	}
+	getcwd(cwd, size);
+	printf("%s\n", cwd);
+	free(cwd);
+	return 0;
+}
 
 int (*builtin_call[]) (char**, int) = {
 	&builtin_cd,
 	&builtin_pinfo,
-	&builtin_exit
+	&builtin_exit,
+	&builtin_pwd
 };
 
 

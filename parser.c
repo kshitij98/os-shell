@@ -146,6 +146,36 @@ Str esc_stripper(Str word, char esc)
 	return word;
 }
 
+char *echo_parser(char *line)
+{
+	int i = 4;
+	int j = 0;
+	int flag = 0;
+	int shift = 0;
+	char *sep = SEP_LIST;
+	int sep_len = strlen(SEP_LIST);
+	while (line[i] != '\0') {
+		flag = 0;
+		for (j = 0; j < sep_len; j++) {
+			if (line[i] == sep[j])
+				flag = 1;
+		}
+		if (flag == 0)
+			break;
+		++i;
+	}
+	j = i;
+	while (line[j] != '\0') {
+		if (line[j] == ESC) {
+			++shift;
+		} else {
+			line[j - shift] = line[j];
+		}
+		++j;
+	}
+	line[j] = '\0';
+	return line + i;
+}
 
 #ifdef _LOCAL_TESTING
 
