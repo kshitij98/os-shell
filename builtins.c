@@ -26,7 +26,7 @@ int builtin_cd(char **arg, int argc)
 {
 	const char *dest_dir;
 
-	if (argc < 2 || arg[1] == NULL) {
+	if (argc < 2 || arg[1] == NULL || strcmp(arg[1], "~") == 0) {
 		dest_dir = getpwuid(getuid()) -> pw_dir;
 		if (dest_dir == NULL) {
 			perror("Could not get home directory.");
