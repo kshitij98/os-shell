@@ -27,6 +27,8 @@ char *line_read()
 		ch = getchar();
 
 		if (ch == '\n' || ch == EOF) {
+			if (limit == 0 && ch == '\n')
+				buff[limit++] = '\n';
 			buff[limit] = '\0';
 			return buff;
 		} else {
@@ -148,12 +150,22 @@ Str esc_stripper(Str word, char esc)
 
 char *echo_parser(char *line)
 {
-	int i = 4;
+	int i = 0;
 	int j = 0;
 	int flag = 0;
 	int shift = 0;
 	char *sep = SEP_LIST;
 	int sep_len = strlen(SEP_LIST);
+	for (i = 0; line[i] != '\0'; i++) {
+		flag = 0;
+		for (j = 0; j < sep_len; j++) {
+			if (line[i] == sep[j])
+				flag = 1;
+		}
+		if (flag == 0)
+			break;
+	}
+	i += 4;
 	while (line[i] != '\0') {
 		flag = 0;
 		for (j = 0; j < sep_len; j++) {

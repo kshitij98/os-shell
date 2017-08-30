@@ -103,7 +103,7 @@ int builtin_pwd(char **arg, int argc)
 	char *cwd = calloc(size, sizeof(char));
 
 	if (cwd == NULL) {
-		fprintf(stderr, "Error! %s\n", errno);
+		fprintf(stderr, "Error! %s\n", strerror(errno));
 		return -1;
 	}
 	getcwd(cwd, size);

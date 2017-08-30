@@ -19,12 +19,14 @@ int main() {
 	int status;
 
 	while (1) {
-		flag = 0;
 
 		// Get command
 		print_prompt();
 
 		line = line_read();
+
+		if (line[0] == '\n')
+			continue;
 
 		if (line[0] == '\0') {
 			(builtin_call[2])(args, 0);
@@ -36,6 +38,7 @@ int main() {
 
 		// Execute command
 		for (int j = 0; j < cmd_len; j++) {
+			flag = 0;
 			strcpy(dup_line, cmds[j]);
 			args = string_tokenizer(cmds[j], SEP_LIST, ESC, &len);
 
@@ -43,6 +46,7 @@ int main() {
 			if (strcmp(args[0], "echo") == 0) {
 				format_line = echo_parser(dup_line);
 				builtin_echo(format_line);
+				flag = 1;
 				continue;
 			}
 
@@ -60,7 +64,8 @@ int main() {
 				if (pid == 0) {
 					i = 0;
 					execvp(args[0], args);
-
+					fprintf(stderr, "os-shell: command %s not found!\n", args[0]);
+					exit(1);
 				} else if (pid < 0) {
 					// Error in fork()
 					perror("os-shell");
