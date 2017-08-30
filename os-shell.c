@@ -2,8 +2,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/wait.h>
 #include <sys/prctl.h>
+#include <sys/types.h>
 #include "prompt.h"
 #include "parser.h"
 #include "builtins.h"
@@ -11,8 +13,39 @@
 
 #define SHELL_NAME "os-shell"
 
+pid_t os_proc_gid;
+pid_t os_proc_id;
+child_process *children;
+
+
+void child_handler(int sig)
+{
+	pid_t proc_id;
+	pid_t proc_gid;
+	int ret_stat;
+	int flag = 0;
+	proc_id = wait(NULL);
+	child_process *curr = children;
+
+	while (curr != NULL) {
+		if (curr->pid == proc_id) {
+			flag = 1;
+			break;
+		}
+		curr = curr->next;
+	}
+
+	if (flag == 0)
+		return;
+
+	fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited\n", proc_id, curr->name);
+	return;
+}
+
 int main(int argc, char *argv[])
 {
+	os_proc_gid = getgid();
+	os_proc_id = getpid();
 	char *line;
 	char **args;
 	char **cmds;
@@ -22,13 +55,16 @@ int main(int argc, char *argv[])
 	int pid;
 	int status;
 	char *process_name = SHELL_NAME"\0";
+	int exec_back = 0;
+	children = NULL;
+
 	memcpy((void *)argv[0], process_name, sizeof(process_name));
 	prctl(PR_SET_NAME, SHELL_NAME);
 
 	while (1) {
-
-		// Get command
 		print_prompt();
+		signal(SIGCHLD, child_handler);
+		// Get command
 
 		line = line_read();
 
@@ -46,8 +82,15 @@ int main(int argc, char *argv[])
 		// Execute command
 		for (int j = 0; j < cmd_len; j++) {
 			flag = 0;
+			exec_back = 0;
 			strcpy(dup_line, cmds[j]);
 			args = string_tokenizer(cmds[j], SEP_LIST, ESC, &len);
+
+			if (strcmp(args[len - 1], "&") == 0) {
+				exec_back = 1;
+				args[len - 1] = NULL;
+				--len;
+			}
 
 			int i = 0;
 			if (strcmp(args[0], "echo") == 0) {
@@ -70,14 +113,21 @@ int main(int argc, char *argv[])
 
 				if (pid == 0) {
 					i = 0;
+					if (exec_back == 1)
+						setpgid(0, 0);
+
+
 					execvp(args[0], args);
-					fprintf(stderr, "os-shell: command %s not found!\n", args[0]);
+					fprintf(stderr, "\nos-shell: command %s not found!\n", args[0]);
 					exit(1);
 				} else if (pid < 0) {
 					// Error in fork()
 					perror("os-shell");
 				} else {
-					wait(NULL);
+					if (exec_back == 0)
+						wait(NULL);
+					else
+						child_insert(&children, pid, args[0]);
 				}
 			}
 		}

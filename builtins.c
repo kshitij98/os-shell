@@ -49,15 +49,25 @@ int builtin_cd(char **arg, int argc)
 }
 
 
-void itoa(long long num, char *snum)
+void itoa(long long num, char **snum)
 {
 	int i = 0;
-	snum[i] = '\0';
+	int j = 0;
+	int temp = 0;
+	snum[0][i] = '\0';
 	while (num > 0) {
-		snum[i] = num % 10;
+		snum[0][i] = num % 10 + '0';
 		num /= 10;
+		i++;
 	}
-	snum[i] = '\0';
+
+	while (j < i / 2) {
+		temp = snum[0][j];
+		snum[0][j] = snum[0][i - j - 1];
+		snum[0][i - j - 1] = temp;
+		j++;
+	}
+	snum[0][i] = '\0';
 	return;
 }
 
@@ -79,9 +89,8 @@ int builtin_pinfo(char **arg, int argc)
 	if (argc < 2 || arg[1] == NULL) {
 		proc_id = getpid();
 		arg[1] = malloc(sizeof(char) * 15);
-		itoa(proc_id, arg[1]);
+		itoa(proc_id, &arg[1]);
 	}
-
 	char path[100] = "/proc/";
 	strcat(path, arg[1]);
 	strcat(path, "/stat");
