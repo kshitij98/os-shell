@@ -60,6 +60,7 @@ void itoa(long long num, char *snum)
 int builtin_exit(char **arg, int argc)
 {
 	fprintf(stderr, "Exit os-shell!\n");
+	_exit(0);
 	exit(0);
 }
 

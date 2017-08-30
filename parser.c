@@ -173,7 +173,7 @@ char *echo_parser(char *line)
 		}
 		++j;
 	}
-	line[j] = '\0';
+	line[j - shift] = '\0';
 	return line + i;
 }
 

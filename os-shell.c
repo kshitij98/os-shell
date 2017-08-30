@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include "prompt.h"
 #include "parser.h"
 #include "builtins.h"
@@ -13,13 +15,20 @@ int main() {
 	int flag;
 	char *dup_line = calloc(MAX_LINE_LEN, sizeof(char));
 	char *format_line;
+	int pid;
+	int status;
 
 	while (1) {
 		flag = 0;
 
 		// Get command
 		print_prompt();
+
 		line = line_read();
+
+		if (line[0] == '\0') {
+			(builtin_call[2])(args, 0);
+		}
 
 		unsigned int len;
 		unsigned int cmd_len;
@@ -43,11 +52,20 @@ int main() {
 					(builtin_call[i])(args, len);
 				}
 			}
-			i = 0;
+
 			if (flag == 0) {
-				while (i < len) {
-					printf("%s\n", args[i]);
-					i++;
+				// forking the process
+				pid = fork();
+
+				if (pid == 0) {
+					i = 0;
+					execvp(args[0], args);
+
+				} else if (pid < 0) {
+					// Error in fork()
+					perror("os-shell");
+				} else {
+					wait(NULL);
 				}
 			}
 		}
