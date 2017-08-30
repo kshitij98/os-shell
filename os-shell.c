@@ -3,12 +3,16 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/prctl.h>
 #include "prompt.h"
 #include "parser.h"
 #include "builtins.h"
 #include "background.h"
 
-int main() {
+#define SHELL_NAME "os-shell"
+
+int main(int argc, char *argv[])
+{
 	char *line;
 	char **args;
 	char **cmds;
@@ -17,6 +21,9 @@ int main() {
 	char *format_line;
 	int pid;
 	int status;
+	char *process_name = SHELL_NAME"\0";
+	memcpy((void *)argv[0], process_name, sizeof(process_name));
+	prctl(PR_SET_NAME, SHELL_NAME);
 
 	while (1) {
 
