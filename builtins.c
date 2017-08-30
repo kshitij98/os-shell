@@ -82,6 +82,9 @@ int builtin_pinfo(char **arg, int argc)
 {
 	pid_t proc_id;
 	int i;
+	char path_stat[100] = "/proc/";
+	char path_exe[100] = "/proc/";
+	char dest[100] = {0};
 
 	if (arg == NULL)
 		return -1;
@@ -91,22 +94,27 @@ int builtin_pinfo(char **arg, int argc)
 		arg[1] = malloc(sizeof(char) * 15);
 		itoa(proc_id, &arg[1]);
 	}
-	char path[100] = "/proc/";
-	strcat(path, arg[1]);
-	strcat(path, "/stat");
-	FILE *fp = fopen(path, "r");
-	if (fp == NULL) {
+	strcat(path_stat, arg[1]);
+	strcat(path_exe, arg[1]);
+	strcat(path_stat, "/stat");
+	strcat(path_exe, "/exe");
+	FILE *fps = fopen(path_stat, "r");
+	if (fps == NULL) {
 		fprintf(stderr, "process with pid: %s not identified!\n", arg[1]);
 		return -1;
 	}
 
+	if (readlink(path_exe, dest, 100) == -1) {
+		perror("readlink");
+		return -1;
+	}
 	char str[M][N];
 
 	for (i = 0; i < M; i++) {
-		fscanf(fp, "%s", str[i]);
+		fscanf(fps, "%s", str[i]);
 	}
-	printf("%s\t%s\t%s\t%s\n", str[0], str[1], str[2], str[22]);
-	fclose(fp);
+	printf("%s\t%s\t%s\t%s\t%s\n", str[0], str[1], str[2], str[22], dest);
+	fclose(fps);
 	return 0;
 }
 
