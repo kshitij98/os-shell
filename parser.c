@@ -189,6 +189,22 @@ char *echo_parser(char *line)
 	return line + i;
 }
 
+
+char *get_flags(char **arg, char argc, char *flags) {
+	memset(flags, 0, 300);
+	
+	int i;
+	for (i=0 ; i<argc ; ++i) {
+		if (arg[i][0] == '-' && arg[i][1] && arg[i][1] != '-') {
+			int curr = 1;
+			while (arg[i][curr] != '\0')
+				flags[arg[i][curr++]] = 1;
+		}
+	}
+	return flags;
+}
+
+
 #ifdef _LOCAL_TESTING
 
 int main()

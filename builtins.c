@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <dirent.h>
+#include <sys/stat.h>
 #include "builtins.h"
 
 
@@ -13,7 +15,8 @@ char *builtin_str[] = {
 	"cd",
 	"pinfo",
 	"exit",
-	"pwd"
+	"pwd",
+	"ls"
 };
 
 int builtin_echo(char *arg)
@@ -112,11 +115,59 @@ int builtin_pwd(char **arg, int argc)
 	return 0;
 }
 
+int builtin_ls(char **arg, int argc)
+{
+	char flags[300];
+	get_flags(arg, argc, flags);
+
+	const int size = 1024;
+	char *cwd = calloc(size, sizeof(char));
+
+	if (cwd == NULL) {
+		fprintf(stderr, "Error! %s\n", strerror(errno));
+		return -1;
+	}
+	getcwd(cwd, size);
+
+	DIR *mydir;
+	struct dirent *myfile;
+	struct stat mystat;
+	char buf[512];
+	mydir = opendir(cwd);
+	while((myfile = readdir(mydir)) != NULL) {
+		if (myfile -> d_name[0] != '.' || flags['a']) {
+			sprintf(buf, "%s/%s", cwd, myfile->d_name);
+			stat(buf, &mystat);
+			if (flags['l']) {
+				printf( (S_ISDIR(mystat.st_mode)) ? "d" : "-");
+				printf( (mystat.st_mode & S_IRUSR) ? "r" : "-");
+				printf( (mystat.st_mode & S_IWUSR) ? "w" : "-");
+				printf( (mystat.st_mode & S_IXUSR) ? "x" : "-");
+				printf( (mystat.st_mode & S_IRGRP) ? "r" : "-");
+				printf( (mystat.st_mode & S_IWGRP) ? "w" : "-");
+				printf( (mystat.st_mode & S_IXGRP) ? "x" : "-");
+				printf( (mystat.st_mode & S_IROTH) ? "r" : "-");
+				printf( (mystat.st_mode & S_IWOTH) ? "w" : "-");
+				printf( (mystat.st_mode & S_IXOTH) ? "x" : "-");
+
+			    printf("\t%zu\t",mystat.st_size);
+		    }
+			if (S_ISDIR(mystat.st_mode)) printf("\033[1m\033[34m%s\033[0m/\n", myfile->d_name);
+			else if (mystat.st_mode & S_IXUSR) printf("\033[1m\033[32m%s\033[0m*\n", myfile->d_name);
+		    else printf("%s\n", myfile->d_name);
+		}
+	}
+	closedir(mydir);
+	free(cwd);
+	return 0;
+}
+
 int (*builtin_call[]) (char**, int) = {
 	&builtin_cd,
 	&builtin_pinfo,
 	&builtin_exit,
-	&builtin_pwd
+	&builtin_pwd,
+	&builtin_ls
 };
 
 
