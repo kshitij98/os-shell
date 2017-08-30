@@ -42,6 +42,11 @@ void child_handler(int sig)
 	return;
 }
 
+void interrupt_handler(int sig)
+{
+	return;
+}
+
 int main(int argc, char *argv[])
 {
 	os_proc_gid = getgid();
@@ -60,7 +65,7 @@ int main(int argc, char *argv[])
 
 	memcpy((void *)argv[0], process_name, sizeof(process_name));
 	prctl(PR_SET_NAME, SHELL_NAME);
-
+	signal(SIGINT, interrupt_handler);
 	while (1) {
 		print_prompt();
 		signal(SIGCHLD, child_handler);
