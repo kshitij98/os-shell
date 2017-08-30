@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <grp.h>
 #include "parser.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,6 +151,8 @@ int builtin_ls(char **arg, int argc)
 				printf( (mystat.st_mode & S_IWOTH) ? "w" : "-");
 				printf( (mystat.st_mode & S_IXOTH) ? "x" : "-");
 
+				printf("\t%s\t%s", getpwuid(mystat.st_uid)->pw_name,
+					   getgrgid(mystat.st_gid)->gr_name);
 			    printf("\t%zu\t",mystat.st_size);
 		    }
 			if (S_ISDIR(mystat.st_mode)) printf("\033[1m\033[34m%s\033[0m/\n", myfile->d_name);
