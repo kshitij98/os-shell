@@ -22,11 +22,11 @@ void child_handler(int sig)
 {
 	pid_t proc_id;
 	pid_t proc_gid;
-	int ret_stat;
+	int st;
+	int ret_stat = 0;
 	int flag = 0;
-	proc_id = wait(NULL);
+	proc_id = wait(&ret_stat);
 	child_process *curr = children;
-
 	while (curr != NULL) {
 		if (curr->pid == proc_id) {
 			flag = 1;
@@ -38,7 +38,7 @@ void child_handler(int sig)
 	if (flag == 0)
 		return;
 
-	fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited\n", proc_id, curr->name);
+	fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
 	return;
 }
 
