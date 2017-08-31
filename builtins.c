@@ -4,6 +4,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include "parser.h"
+#include "prompt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -28,7 +29,7 @@ int builtin_echo(char *arg)
 
 int builtin_cd(char **arg, int argc)
 {
-	const char *dest_dir;
+	char *dest_dir;
 
 	if (argc < 2 || arg[1] == NULL || strcmp(arg[1], "~") == 0) {
 		dest_dir = getpwuid(getuid()) -> pw_dir;
@@ -37,7 +38,11 @@ int builtin_cd(char **arg, int argc)
 			return 1;
 		}
 	} else {
-		dest_dir = arg[1];
+		dest_dir = getpwuid(getuid()) -> pw_dir;
+		if (arg[1][0] == '~')
+			strcat(dest_dir, arg[1] + 1);
+		else 
+			dest_dir = arg[1];
 	}
 
 	if (chdir(dest_dir) != 0) {
@@ -140,44 +145,68 @@ int builtin_ls(char **arg, int argc)
 
 	const int size = 1024;
 	char *cwd = calloc(size, sizeof(char));
+	char *initwd = calloc(size, sizeof(char));
 
-	if (cwd == NULL) {
+	if (cwd == NULL || initwd == NULL) {
 		fprintf(stderr, "Error! %s\n", strerror(errno));
 		return -1;
 	}
 	getcwd(cwd, size);
+	getcwd(initwd, size);
 
-	DIR *mydir;
-	struct dirent *myfile;
-	struct stat mystat;
-	char buf[512];
-	mydir = opendir(cwd);
-	while((myfile = readdir(mydir)) != NULL) {
-		if (myfile -> d_name[0] != '.' || flags['a']) {
-			sprintf(buf, "%s/%s", cwd, myfile->d_name);
-			stat(buf, &mystat);
-			if (flags['l']) {
-				printf( (S_ISDIR(mystat.st_mode)) ? "d" : "-");
-				printf( (mystat.st_mode & S_IRUSR) ? "r" : "-");
-				printf( (mystat.st_mode & S_IWUSR) ? "w" : "-");
-				printf( (mystat.st_mode & S_IXUSR) ? "x" : "-");
-				printf( (mystat.st_mode & S_IRGRP) ? "r" : "-");
-				printf( (mystat.st_mode & S_IWGRP) ? "w" : "-");
-				printf( (mystat.st_mode & S_IXGRP) ? "x" : "-");
-				printf( (mystat.st_mode & S_IROTH) ? "r" : "-");
-				printf( (mystat.st_mode & S_IWOTH) ? "w" : "-");
-				printf( (mystat.st_mode & S_IXOTH) ? "x" : "-");
+			struct dirent *myfile;
+			struct stat mystat;
+			char buf[512];
+			DIR *mydir;
+	int i, tried = 0;
+	for (i=0 ; i<argc ; ++i) {
+		chdir(initwd);
+		strcpy(cwd, getpwuid(getuid()) -> pw_dir);
+		if (arg[i][0] == '~')
+			strcat(cwd, arg[i] + 1);
+		else
+			strcpy(cwd, arg[i]);
 
-				printf("\t%s\t%s", getpwuid(mystat.st_uid)->pw_name,
-					   getgrgid(mystat.st_gid)->gr_name);
-			    printf("\t%zu\t",mystat.st_size);
-		    }
-			if (S_ISDIR(mystat.st_mode)) printf("\033[1m\033[34m%s\033[0m/\n", myfile->d_name);
-			else if (mystat.st_mode & S_IXUSR) printf("\033[1m\033[32m%s\033[0m*\n", myfile->d_name);
-		    else printf("%s\n", myfile->d_name);
+		int invalid = chdir(cwd);
+		if (i > 0 && arg[i][0] != '-')
+			tried = 1;
+		if (!invalid || (!tried && i == argc-1)) {
+			if (argc > 1 && !invalid)
+				printf("%s:\n", arg[i]);
+			tried = 1;
+			getcwd(cwd, size);
+			mydir = opendir(cwd);
+			while((myfile = readdir(mydir)) != NULL) {
+				if (myfile -> d_name[0] != '.' || flags['a']) {
+					sprintf(buf, "%s/%s", cwd, myfile->d_name);
+					stat(buf, &mystat);
+					if (flags['l']) {
+						printf( (S_ISDIR(mystat.st_mode)) ? "d" : "-");
+						printf( (mystat.st_mode & S_IRUSR) ? "r" : "-");
+						printf( (mystat.st_mode & S_IWUSR) ? "w" : "-");
+						printf( (mystat.st_mode & S_IXUSR) ? "x" : "-");
+						printf( (mystat.st_mode & S_IRGRP) ? "r" : "-");
+						printf( (mystat.st_mode & S_IWGRP) ? "w" : "-");
+						printf( (mystat.st_mode & S_IXGRP) ? "x" : "-");
+						printf( (mystat.st_mode & S_IROTH) ? "r" : "-");
+						printf( (mystat.st_mode & S_IWOTH) ? "w" : "-");
+						printf( (mystat.st_mode & S_IXOTH) ? "x" : "-");
+		
+						printf("\t%s\t%s", getpwuid(mystat.st_uid)->pw_name,
+						getgrgid(mystat.st_gid)->gr_name);
+						printf("\t%zu\t",mystat.st_size);
+					}
+					if (S_ISDIR(mystat.st_mode)) printf("\033[1m\033[34m%s\033[0m/\n", myfile->d_name);
+					else if (mystat.st_mode & S_IXUSR) printf("\033[1m\033[32m%s\033[0m*\n", myfile->d_name);
+					else printf("%s\n", myfile->d_name);
+				}
+			}
+			printf("\n");
 		}
+		else if (i > 0 && arg[i][0] != '-')
+			fprintf(stderr, "ls: cannot access '%s': No such file or directory\n\n", arg[i]);
+		chdir(initwd);
 	}
-	closedir(mydir);
 	free(cwd);
 	return 0;
 }
