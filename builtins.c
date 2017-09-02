@@ -7,18 +7,20 @@
 #include "prompt.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <errno.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include "builtins.h"
-
+#include "non-blocking-input.h"
 
 char *builtin_str[] = {
 	"cd",
 	"pinfo",
 	"exit",
 	"pwd",
-	"ls"
+	"ls",
+	"nightswatch"
 };
 
 int builtin_echo(char *arg)
@@ -138,6 +140,10 @@ int builtin_pwd(char **arg, int argc)
 	return 0;
 }
 
+int builtin_ls_print(char**arg, int argc) {
+
+}
+
 int builtin_ls(char **arg, int argc)
 {
 	char flags[300];
@@ -211,12 +217,84 @@ int builtin_ls(char **arg, int argc)
 	return 0;
 }
 
+int builtin_nightswatch(char **arg, int argc) {
+  char usage[100] = "Usage:\n\r watch [options] <command>\n\r";
+  if (argc != 4) {
+		printf("%s", usage);
+  	return 1;
+  }
+
+  set_conio_terminal_mode();
+  time_t start = time(NULL);
+	int curr = -1, n = 0;
+	char intFileName[100] = "/proc/interrupts";
+	char memFileName[100] = "/proc/meminfo";
+	char line[1000], ch;
+	int dirty=0, interrupt=0;
+	FILE *file;
+	if (strcmp("interrupt", arg[3]) == 0) interrupt = 1;
+	else if (strcmp("dirty", arg[3]) == 0) dirty = 1;
+
+	if (strcmp(arg[1], "-n")) {	
+		printf("%s", usage);
+		return 1;
+	}
+
+	int i=0;
+	while (arg[2][i] != '\0') {
+		if ('0' <= arg[2][i] && arg[2][i] <= '9')
+			n = (n*10) + arg[2][i++] - '0';
+		else {
+			printf("%s", usage);
+			reset_terminal_mode();
+			return 1;
+		}
+	}
+
+	if (interrupt || dirty) {
+		while (1) {
+			if (isKeyDown() == 'q')
+				break;
+
+			if ((time(NULL) - start) / n > curr) {
+				++curr;
+				
+				if (dirty) {
+					file = fopen(memFileName, "r");
+					
+					for (i=0 ; i<17 ; ++i)
+						fscanf(file, "%[^\n]%c", line, &ch);
+					printf("%s\n\r", line);
+				}
+				else {
+					file = fopen(intFileName, "r");
+					
+					fscanf(file, "%[^\n]%c", line, &ch);
+					printf("%s\n\r", line);
+					fscanf(file, "%[^\n]%c", line, &ch);
+					fscanf(file, "%[^\n]%c", line, &ch);
+					printf("%s\n\r", line);
+				}
+				fclose(file);
+			}
+		}
+	}
+	else {
+		printf("%s", usage);
+		reset_terminal_mode();
+		return 1;
+	}
+	reset_terminal_mode();
+	return 0;
+}
+
 int (*builtin_call[]) (char**, int) = {
 	&builtin_cd,
 	&builtin_pinfo,
 	&builtin_exit,
 	&builtin_pwd,
-	&builtin_ls
+	&builtin_ls,
+	&builtin_nightswatch
 };
 
 
