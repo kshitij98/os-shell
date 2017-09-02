@@ -244,7 +244,7 @@ int builtin_ls(char **arg, int argc)
 int builtin_nightswatch(char **arg, int argc) {
   char usage[100] = "Usage:\n\r watch [options] <command>\n\r";
   if (argc != 4) {
-		printf("%s", usage);
+		fprintf(stderr, "%s", usage);
   	return 1;
   }
 
@@ -260,7 +260,7 @@ int builtin_nightswatch(char **arg, int argc) {
 	else if (strcmp("dirty", arg[3]) == 0) dirty = 1;
 
 	if (strcmp(arg[1], "-n")) {	
-		printf("%s", usage);
+		fprintf(stderr, "%s", usage);
 		return 1;
 	}
 
@@ -269,7 +269,7 @@ int builtin_nightswatch(char **arg, int argc) {
 		if ('0' <= arg[2][i] && arg[2][i] <= '9')
 			n = (n*10) + arg[2][i++] - '0';
 		else {
-			printf("%s", usage);
+			fprintf(stderr, "%s", usage);
 			reset_terminal_mode();
 			return 1;
 		}
@@ -304,7 +304,7 @@ int builtin_nightswatch(char **arg, int argc) {
 		}
 	}
 	else {
-		printf("%s", usage);
+		fprintf(stderr, "%s", usage);
 		reset_terminal_mode();
 		return 1;
 	}
