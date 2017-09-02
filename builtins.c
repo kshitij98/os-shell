@@ -140,8 +140,38 @@ int builtin_pwd(char **arg, int argc)
 	return 0;
 }
 
-int builtin_ls_print(char**arg, int argc) {
-
+int builtin_ls__print(struct dirent *file, char *flags, char *path, int isFile) {
+	struct stat mystat;
+	char buf[512];
+	char *fileName = isFile ? path : file -> d_name;
+	if (fileName[0] != '.' || flags['a']) {
+		if (!isFile) {	
+			sprintf(buf, "%s/%s", path, fileName);
+			stat(buf, &mystat);
+		}
+		else {
+			stat(fileName, &mystat);
+		}
+		if (flags['l']) {
+			printf( (S_ISDIR(mystat.st_mode)) ? "d" : "-");
+			printf( (mystat.st_mode & S_IRUSR) ? "r" : "-");
+			printf( (mystat.st_mode & S_IWUSR) ? "w" : "-");
+			printf( (mystat.st_mode & S_IXUSR) ? "x" : "-");
+			printf( (mystat.st_mode & S_IRGRP) ? "r" : "-");
+			printf( (mystat.st_mode & S_IWGRP) ? "w" : "-");
+			printf( (mystat.st_mode & S_IXGRP) ? "x" : "-");
+			printf( (mystat.st_mode & S_IROTH) ? "r" : "-");
+			printf( (mystat.st_mode & S_IWOTH) ? "w" : "-");
+			printf( (mystat.st_mode & S_IXOTH) ? "x" : "-");
+	
+			printf("\t%s\t%s", getpwuid(mystat.st_uid)->pw_name,
+			getgrgid(mystat.st_gid)->gr_name);
+			printf("\t%zu\t",mystat.st_size);
+		}
+		if (S_ISDIR(mystat.st_mode)) printf("\033[1m\033[34m%s\033[0m/\n", fileName);
+		else if (mystat.st_mode & S_IXUSR) printf("\033[1m\033[32m%s\033[0m*\n", fileName);
+		else printf("%s\n", fileName);
+	}
 }
 
 int builtin_ls(char **arg, int argc)
@@ -160,11 +190,10 @@ int builtin_ls(char **arg, int argc)
 	getcwd(cwd, size);
 	getcwd(initwd, size);
 
-			struct dirent *myfile;
-			struct stat mystat;
-			char buf[512];
-			DIR *mydir;
+	struct dirent *myfile;
+	DIR *mydir;
 	int i, tried = 0;
+	struct stat buf;
 	for (i=0 ; i<argc ; ++i) {
 		chdir(initwd);
 		strcpy(cwd, getpwuid(getuid()) -> pw_dir);
@@ -173,7 +202,18 @@ int builtin_ls(char **arg, int argc)
 		else
 			strcpy(cwd, arg[i]);
 
+		if (cwd[0] != '/') {
+			char temp[1000];
+			strcpy(temp, initwd);
+			strcat(temp, "/");
+			strcat(temp, cwd);
+			strcpy(cwd, temp);
+			// fprintf(stderr, "<%s>\n", cwd);
+		}
+
 		int invalid = chdir(cwd);
+		// if (invalid)
+			// fprintf(stderr, "<%s>", cwd);
 		if (i > 0 && arg[i][0] != '-')
 			tried = 1;
 		if (!invalid || (!tried && i == argc-1)) {
@@ -182,32 +222,16 @@ int builtin_ls(char **arg, int argc)
 			tried = 1;
 			getcwd(cwd, size);
 			mydir = opendir(cwd);
-			while((myfile = readdir(mydir)) != NULL) {
-				if (myfile -> d_name[0] != '.' || flags['a']) {
-					sprintf(buf, "%s/%s", cwd, myfile->d_name);
-					stat(buf, &mystat);
-					if (flags['l']) {
-						printf( (S_ISDIR(mystat.st_mode)) ? "d" : "-");
-						printf( (mystat.st_mode & S_IRUSR) ? "r" : "-");
-						printf( (mystat.st_mode & S_IWUSR) ? "w" : "-");
-						printf( (mystat.st_mode & S_IXUSR) ? "x" : "-");
-						printf( (mystat.st_mode & S_IRGRP) ? "r" : "-");
-						printf( (mystat.st_mode & S_IWGRP) ? "w" : "-");
-						printf( (mystat.st_mode & S_IXGRP) ? "x" : "-");
-						printf( (mystat.st_mode & S_IROTH) ? "r" : "-");
-						printf( (mystat.st_mode & S_IWOTH) ? "w" : "-");
-						printf( (mystat.st_mode & S_IXOTH) ? "x" : "-");
-		
-						printf("\t%s\t%s", getpwuid(mystat.st_uid)->pw_name,
-						getgrgid(mystat.st_gid)->gr_name);
-						printf("\t%zu\t",mystat.st_size);
-					}
-					if (S_ISDIR(mystat.st_mode)) printf("\033[1m\033[34m%s\033[0m/\n", myfile->d_name);
-					else if (mystat.st_mode & S_IXUSR) printf("\033[1m\033[32m%s\033[0m*\n", myfile->d_name);
-					else printf("%s\n", myfile->d_name);
-				}
-			}
+			while(mydir && (myfile = readdir(mydir)) != NULL)
+				builtin_ls__print(myfile, flags, cwd, 0);
+
 			printf("\n");
+		}
+		else if (stat(cwd, &buf) >= 0) {
+			if (!S_ISDIR(buf.st_mode)) {
+				builtin_ls__print(NULL, flags, cwd, 1);
+				printf("\n");
+			}
 		}
 		else if (i > 0 && arg[i][0] != '-')
 			fprintf(stderr, "ls: cannot access '%s': No such file or directory\n\n", arg[i]);
