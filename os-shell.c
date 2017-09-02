@@ -39,6 +39,7 @@ void child_handler(int sig)
 		return;
 
 	fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
+	print_prompt();
 	return;
 }
 
@@ -123,7 +124,7 @@ int main(int argc, char *argv[])
 
 
 					execvp(args[0], args);
-					fprintf(stderr, "\nos-shell: command %s not found!\n", args[0]);
+					fprintf(stderr, "os-shell: command %s not found!\n", args[0]);
 					exit(1);
 				} else if (pid < 0) {
 					// Error in fork()

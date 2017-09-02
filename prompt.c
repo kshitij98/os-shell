@@ -29,9 +29,10 @@ void print_prompt() {
 		perror("Couldn't fetch current working directory!\ngetcurr_dir() error");
 
 	if (inside_home(curr_dir, home_dir))
-		printf("%s%s<%s@%s:%s~%s>%s ", BOLD_TEXT, GREEN_TEXT, username, system_name, BLUE_TEXT, curr_dir + strlen(home_dir), RESET_TEXT);
+		fprintf(stdout, "%s%s<%s@%s:%s~%s>%s ", BOLD_TEXT, GREEN_TEXT, username, system_name, BLUE_TEXT, curr_dir + strlen(home_dir), RESET_TEXT);
 	else
-		printf("%s%s<%s@%s:%s%s>%s ", BOLD_TEXT, GREEN_TEXT, username, system_name, BLUE_TEXT, curr_dir, RESET_TEXT);
+		fprintf(stdout, "%s%s<%s@%s:%s%s>%s ", BOLD_TEXT, GREEN_TEXT, username, system_name, BLUE_TEXT, curr_dir, RESET_TEXT);
+	fflush(stdout);
 }
 
 
