@@ -9,6 +9,5 @@
 #define RESET_TEXT "\033[0m"
 
 void print_prompt();
-char *line_read();
 
 #endif
