@@ -34,45 +34,6 @@ void print_prompt() {
 		printf("%s%s<%s@%s:%s%s>%s ", BOLD_TEXT, GREEN_TEXT, username, system_name, BLUE_TEXT, curr_dir, RESET_TEXT);
 }
 
-/*
-char *line_read()
-{
-	int line_size = LINE_BUFFSIZE;
-	char *buff = malloc(line_size * sizeof(char));
-	int limit = 0;
-	char ch = 0;
-
-	if (buff == NULL) {
-		// perror( OS_SHELL MEM_ERR_MSG );
-		// exit(MEM_ERR);
-	}
-
-	while (1) {
-		ch = getchar();
-
-		if (ch == EOF) {
-			return buff;
-		} else if (ch == '\n') {
-			buff[limit] = '\0';
-			return buff;
-		} else {
-			buff[limit] = ch;
-		}
-
-		++limit;
-
-		if (limit >= line_size) {
-			line_size += LINE_BUFFSIZE;
-			buff = realloc(buff, line_size * sizeof(char));
-
-			if (buff == NULL) {
-				// perror( OS_SHELL MEM_ERR_MSG );
-				// exit(MEM_ERR);
-			}
-		}
-	}
-}
-*/
 
 #ifdef _LOCAL_TESTING
 
