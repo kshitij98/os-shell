@@ -11,12 +11,30 @@
 #include "builtins.h"
 #include "background.h"
 
+
 #define SHELL_NAME "os-shell"
 
 pid_t os_proc_gid;
 pid_t os_proc_id;
 child_process *children = NULL;
 
+
+void init()
+{
+	MAP_STATE['R'] = 0;
+	MAP_STATE['S'] = 1;
+	MAP_STATE['D'] = 2;
+	MAP_STATE['Z'] = 3;
+	MAP_STATE['T'] = 4;
+	MAP_STATE['t'] = 5;
+	MAP_STATE['W'] = 6;
+	MAP_STATE['X'] = 7;
+	MAP_STATE['x'] = 8;
+	MAP_STATE['K'] = 9;
+	MAP_STATE['W'] = 10;
+	MAP_STATE['P'] = 11;
+	return;
+}
 
 void child_handler(int sig)
 {
@@ -54,6 +72,7 @@ void interrupt_handler(int sig)
 
 int main(int argc, char *argv[])
 {
+	init();
 	os_proc_gid = getgid();
 	os_proc_id = getpid();
 	char *line;

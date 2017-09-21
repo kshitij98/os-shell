@@ -3,6 +3,8 @@
 #include <sys/types.h>
 
 #define NAME_LEN 256
+extern char *STATE[];
+extern int MAP_STATE[];
 
 typedef struct CHILD_ {
 	pid_t pid;

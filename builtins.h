@@ -3,8 +3,7 @@
 #define BUILTIN(str) builtin_##str
 #define N 75
 #define M 52
-#define BUILTIN_LEN 8
-
+#define BUILTIN_LEN 9
 
 extern char *builtin_str[];
 extern int (*builtin_call[]) (char**, int);

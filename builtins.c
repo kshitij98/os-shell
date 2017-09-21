@@ -17,7 +17,7 @@
 #include "utilities.h"
 #include "background.h"
 #include "os-shell.h"
-
+#include <sys/wait.h>
 
 char *builtin_str[] = {
 	"cd",
@@ -27,7 +27,8 @@ char *builtin_str[] = {
 	"ls",
 	"nightswatch",
 	"jobs",
-	"kjob"
+	"kjob",
+	"fg"
 };
 
 int builtin_echo(char *arg)
@@ -305,7 +306,7 @@ int builtin_jobs(char **arg, int argc)
 
 int builtin_kjob(char **arg, int argc)
 {
-	if (argc < 2) {
+	if (argc < 3) {
 		fprintf(stderr, "kjob <job number> <signal number>\n");
 		return -1;
 	}
@@ -324,6 +325,28 @@ int builtin_kjob(char **arg, int argc)
 	return ret;
 }
 
+int builtin_fg(char **arg, int argc)
+{
+	if (argc < 2) {
+		fprintf(stderr, "fg <pid>\n");
+		return -1;
+	}
+
+	pid_t proc_num = atoint(arg[1]);
+	child_process *cp = search_index(proc_num, children);
+	int wstatus;
+	if (cp == NULL) {
+		fprintf(stderr, "os-shell: Wrong process number!\n");
+		return -1;
+	}
+
+	int ret = waitpid(cp->pid, &wstatus, 0);
+	if (ret == -1) {
+		fprintf(stderr, "os-shell: %s\n", strerror(errno));
+		return -1;
+	}
+	return 0;
+}
 
 int (*builtin_call[]) (char**, int) = {
 	&builtin_cd,
@@ -333,7 +356,8 @@ int (*builtin_call[]) (char**, int) = {
 	&builtin_ls,
 	&builtin_nightswatch,
 	&builtin_jobs,
-	&builtin_kjob
+	&builtin_kjob,
+	&builtin_fg
 };
 
 

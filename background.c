@@ -8,6 +8,26 @@
 #include <signal.h>
 
 
+
+char* STATE[] = {
+	"Running",
+	"Sleeping",
+	"Waiting",
+	"Zombie",
+	"Stopped(signal)",
+	"Tracing stop",
+	"Paging",
+	"Dead",
+	"Dead",
+	"Wakekill",
+	"Waking",
+	"Parked"
+};
+
+int MAP_STATE[256];
+
+
+
 int child_insert(child_process **list, pid_t proc_id, char *name)
 {
 	child_process *temp = malloc(sizeof(child_process));
@@ -47,16 +67,7 @@ int child_remove(child_process **list, child_process *ptr)
 
 char* getStatus(char *str)
 {
-	if (str[0] == 'S')
-		return "Sleeping";
-	else if (str[0] == 'R')
-		return "Running";
-	else if (str[0] == 'Z')
-		return "Zombie";
-	else if (str[0] == 'X')
-		return "Terminated";
-	else
-		return "Unknown";
+	return STATE[MAP_STATE[str[0]]];
 }
 
 void print_children(child_process **list)
