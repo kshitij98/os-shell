@@ -15,7 +15,7 @@
 
 pid_t os_proc_gid;
 pid_t os_proc_id;
-child_process *children;
+child_process *children = NULL;
 
 
 void child_handler(int sig)
@@ -37,8 +37,12 @@ void child_handler(int sig)
 
 	if (flag == 0)
 		return;
-
-	fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
+	if (ret_stat > 255)
+		//fprintf(stderr, "\nos-shell: Command %s not found!\n", curr->name);
+		return;
+	else
+		fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
+	child_remove(&children, curr);
 	print_prompt();
 	return;
 }
@@ -124,7 +128,7 @@ int main(int argc, char *argv[])
 
 
 					execvp(args[0], args);
-					fprintf(stderr, "os-shell: command %s not found!\n", args[0]);
+					fprintf(stderr, "\nos-shell: command %s not found!\n", args[0]);
 					exit(1);
 				} else if (pid < 0) {
 					// Error in fork()

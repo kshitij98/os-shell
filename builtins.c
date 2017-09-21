@@ -11,8 +11,13 @@
 #include <errno.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <signal.h>
 #include "builtins.h"
 #include "non-blocking-input.h"
+#include "utilities.h"
+#include "background.h"
+#include "os-shell.h"
+
 
 char *builtin_str[] = {
 	"cd",
@@ -20,7 +25,9 @@ char *builtin_str[] = {
 	"exit",
 	"pwd",
 	"ls",
-	"nightswatch"
+	"nightswatch",
+	"jobs",
+	"kjob"
 };
 
 int builtin_echo(char *arg)
@@ -43,7 +50,7 @@ int builtin_cd(char **arg, int argc)
 		dest_dir = getpwuid(getuid()) -> pw_dir;
 		if (arg[1][0] == '~')
 			strcat(dest_dir, arg[1] + 1);
-		else 
+		else
 			dest_dir = arg[1];
 	}
 
@@ -55,28 +62,6 @@ int builtin_cd(char **arg, int argc)
 	return 0;
 }
 
-
-void itoa(long long num, char **snum)
-{
-	int i = 0;
-	int j = 0;
-	int temp = 0;
-	snum[0][i] = '\0';
-	while (num > 0) {
-		snum[0][i] = num % 10 + '0';
-		num /= 10;
-		i++;
-	}
-
-	while (j < i / 2) {
-		temp = snum[0][j];
-		snum[0][j] = snum[0][i - j - 1];
-		snum[0][i - j - 1] = temp;
-		j++;
-	}
-	snum[0][i] = '\0';
-	return;
-}
 
 int builtin_exit(char **arg, int argc)
 {
@@ -145,7 +130,7 @@ int builtin_ls__print(struct dirent *file, char *flags, char *path, int isFile) 
 	char buf[512];
 	char *fileName = isFile ? path : file -> d_name;
 	if (fileName[0] != '.' || flags['a']) {
-		if (!isFile) {	
+		if (!isFile) {
 			sprintf(buf, "%s/%s", path, fileName);
 			stat(buf, &mystat);
 		}
@@ -163,7 +148,7 @@ int builtin_ls__print(struct dirent *file, char *flags, char *path, int isFile) 
 			printf( (mystat.st_mode & S_IROTH) ? "r" : "-");
 			printf( (mystat.st_mode & S_IWOTH) ? "w" : "-");
 			printf( (mystat.st_mode & S_IXOTH) ? "x" : "-");
-	
+
 			printf("\t%s\t%s", getpwuid(mystat.st_uid)->pw_name,
 			getgrgid(mystat.st_gid)->gr_name);
 			printf("\t%zu\t",mystat.st_size);
@@ -259,7 +244,7 @@ int builtin_nightswatch(char **arg, int argc) {
 	if (strcmp("interrupt", arg[3]) == 0) interrupt = 1;
 	else if (strcmp("dirty", arg[3]) == 0) dirty = 1;
 
-	if (strcmp(arg[1], "-n")) {	
+	if (strcmp(arg[1], "-n")) {
 		fprintf(stderr, "%s", usage);
 		return 1;
 	}
@@ -282,17 +267,17 @@ int builtin_nightswatch(char **arg, int argc) {
 
 			if ((time(NULL) - start) / n > curr) {
 				++curr;
-				
+
 				if (dirty) {
 					file = fopen(memFileName, "r");
-					
+
 					for (i=0 ; i<17 ; ++i)
 						fscanf(file, "%[^\n]%c", line, &ch);
 					printf("%s\n\r", line);
 				}
 				else {
 					file = fopen(intFileName, "r");
-					
+
 					fscanf(file, "%[^\n]%c", line, &ch);
 					printf("%s\n\r", line);
 					fscanf(file, "%[^\n]%c", line, &ch);
@@ -312,13 +297,38 @@ int builtin_nightswatch(char **arg, int argc) {
 	return 0;
 }
 
+int builtin_jobs(char **arg, int argc)
+{
+	print_children(&children);
+	return 0;
+}
+
+int builtin_kjob(char **arg, int argc)
+{
+	if (argc < 2) {
+		fprintf(stderr, "kjobs <job number> <signal number>\n");
+		return -1;
+	}
+	pid_t proc_id = atoint(arg[1]);
+	int sig = atoint(arg[2]);
+	int ret = kill(proc_id, sig);
+
+	if (ret)
+		fprintf(stderr, "os-shell: %s\n", strerror(errno));
+
+	return ret;
+}
+
+
 int (*builtin_call[]) (char**, int) = {
 	&builtin_cd,
 	&builtin_pinfo,
 	&builtin_exit,
 	&builtin_pwd,
 	&builtin_ls,
-	&builtin_nightswatch
+	&builtin_nightswatch,
+	&builtin_jobs,
+	&builtin_kjob
 };
 
 
