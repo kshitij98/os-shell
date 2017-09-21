@@ -306,12 +306,17 @@ int builtin_jobs(char **arg, int argc)
 int builtin_kjob(char **arg, int argc)
 {
 	if (argc < 2) {
-		fprintf(stderr, "kjobs <job number> <signal number>\n");
+		fprintf(stderr, "kjob <job number> <signal number>\n");
 		return -1;
 	}
-	pid_t proc_id = atoint(arg[1]);
+	pid_t proc_num = atoint(arg[1]);
 	int sig = atoint(arg[2]);
-	int ret = kill(proc_id, sig);
+	child_process *cp = search_index(proc_num, children);
+	if (cp == NULL) {
+		fprintf(stderr, "os-shell: Wrong process number!\n");
+		return -1;
+	}
+	int ret = kill(cp->pid, sig);
 
 	if (ret)
 		fprintf(stderr, "os-shell: %s\n", strerror(errno));

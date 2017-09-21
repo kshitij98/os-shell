@@ -85,3 +85,31 @@ void print_children(child_process **list)
 	free(pid);
 	return;
 }
+
+
+child_process* search(pid_t proc_id, child_process *list)
+{
+	child_process *itr = list;
+	while (itr != NULL) {
+		if (itr->pid == proc_id)
+			break;
+	}
+	return itr;
+}
+
+
+child_process* search_index(int index, child_process *list)
+{
+	child_process *itr = list;
+
+	while (itr != NULL && itr->next != NULL) {
+		itr = itr->next;
+	}
+	while (itr != NULL && index > 1) {
+		--index;
+		itr = itr->prev;
+	}
+	if (index != 1)
+		return NULL;
+	return itr;
+}
