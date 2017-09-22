@@ -10,32 +10,13 @@
 #include "parser.h"
 #include "builtins.h"
 #include "background.h"
-#include <errno.h>
-
 
 #define SHELL_NAME "os-shell"
 
 pid_t os_proc_gid;
 pid_t os_proc_id;
-child_process *children = NULL;
+child_process *children;
 
-
-void init()
-{
-	MAP_STATE['R'] = 0;
-	MAP_STATE['S'] = 1;
-	MAP_STATE['D'] = 2;
-	MAP_STATE['Z'] = 3;
-	MAP_STATE['T'] = 4;
-	MAP_STATE['t'] = 5;
-	MAP_STATE['W'] = 6;
-	MAP_STATE['X'] = 7;
-	MAP_STATE['x'] = 8;
-	MAP_STATE['K'] = 9;
-	MAP_STATE['W'] = 10;
-	MAP_STATE['P'] = 11;
-	return;
-}
 
 void child_handler(int sig)
 {
@@ -44,7 +25,7 @@ void child_handler(int sig)
 	int st;
 	int ret_stat = 0;
 	int flag = 0;
-	proc_id = waitpid(0, &ret_stat, WNOHANG);
+	proc_id = wait(&ret_stat);
 	child_process *curr = children;
 	while (curr != NULL) {
 		if (curr->pid == proc_id) {
@@ -56,11 +37,8 @@ void child_handler(int sig)
 
 	if (flag == 0)
 		return;
-	if (ret_stat > 255)
-		return;
-	else
-		fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
-	child_remove(&children, curr);
+
+	fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
 	print_prompt();
 	return;
 }
@@ -70,14 +48,8 @@ void interrupt_handler(int sig)
 	return;
 }
 
-static void hdl (int sig)
-{
-	return;
-}
-
 int main(int argc, char *argv[])
 {
-	init();
 	os_proc_gid = getgid();
 	os_proc_id = getpid();
 	char *line;
@@ -90,19 +62,14 @@ int main(int argc, char *argv[])
 	int status;
 	char *process_name = SHELL_NAME"\0";
 	int exec_back = 0;
-
 	children = NULL;
 
 	memcpy((void *)argv[0], process_name, sizeof(process_name));
 	prctl(PR_SET_NAME, SHELL_NAME);
 	signal(SIGINT, interrupt_handler);
-	struct sigaction sa;
-	sa.sa_handler = SIG_IGN;
-	sa.sa_flags = SA_RESTART;
-	//	sigaction(SIGTSTP, &sa, NULL);
 	while (1) {
-		signal(SIGCHLD, child_handler);
 		print_prompt();
+		signal(SIGCHLD, child_handler);
 		// Get command
 
 		line = line_read();
@@ -111,8 +78,7 @@ int main(int argc, char *argv[])
 			continue;
 
 		if (line[0] == '\0') {
-			printf("\n");
-			continue;
+			(builtin_call[2])(args, 0);
 		}
 
 		unsigned int len;
@@ -121,6 +87,8 @@ int main(int argc, char *argv[])
 
 		// Execute command
 		for (int j = 0; j < cmd_len; j++) {
+			setFileDescriptors(cmds[j]);
+			// printf("<<%s>>", cmds[j]);
 			flag = 0;
 			exec_back = 0;
 			strcpy(dup_line, cmds[j]);
@@ -158,20 +126,16 @@ int main(int argc, char *argv[])
 
 
 					execvp(args[0], args);
-					fprintf(stderr, "\nos-shell: command %s not found!\n", args[0]);
+					fprintf(stderr, "os-shell: command %s not found!\n", args[0]);
 					exit(1);
 				} else if (pid < 0) {
 					// Error in fork()
 					perror("os-shell");
 				} else {
-					int status;
-					if (exec_back == 0) {
-						//						waitpid(pid, &status, 0);
+					if (exec_back == 0)
 						wait(NULL);
-					} else {
-						//						waitpid(pid, &status, WNOHANG);
+					else
 						child_insert(&children, pid, args[0]);
-					}
 				}
 			}
 		}
