@@ -227,15 +227,15 @@ int setDescriptor(Str fileName, int dir) {
 		fd = 1;
 	}
 	
-	if (!file) {
+	if (file < 0) {
 		fprintf(stderr, OS_SHELL "%s: No such file or directory\n", fileName);
-		return 1;		
+		return -1;		
 	}
 
 	if (dup2(file, fd) < 0) {
 		close(file);
 		fprintf(stderr, "file = %d, fd = %d,  Some Error occured\n", file, fd);
-		return 1;
+		return -1;
 	}
 	close(file);
 
@@ -246,7 +246,7 @@ int setDescriptor(Str fileName, int dir) {
 // 0 <- input
 // 1 <- output
 // 2 <- append
-Str setFileDescriptors(Str cmd) {
+int setFileDescriptors(Str cmd) {
 	int i, len = strlen(cmd), flag = 0;
 
 	int dir = -1, k=0;
@@ -256,7 +256,8 @@ Str setFileDescriptors(Str cmd) {
 		if (cmd[i] == '<') {
 			// Input file
 			curr[k] = cmd[i] = '\0';
-			setDescriptor(curr, dir);
+			if (setDescriptor(curr, dir) < 0)
+				return -1;
 			dir = 0;
 			k = -1;
 		}
@@ -264,14 +265,16 @@ Str setFileDescriptors(Str cmd) {
 			if (i < len-1 && cmd[i+1] == '>') {
 				// Append
 				curr[k] = cmd[i] = '\0';
-				setDescriptor(curr, dir);
+				if (setDescriptor(curr, dir) < 0)
+					return -1;
 				dir = 2;
 				++i;
 			}
 			else {
 				//Truncate
 				curr[k] = cmd[i] = '\0';
-				setDescriptor(curr, dir);
+				if (setDescriptor(curr, dir) < 0)
+					return -1;
 				dir = 1;
 			}
 			k = -1;
@@ -279,17 +282,9 @@ Str setFileDescriptors(Str cmd) {
 		++k;
 	}
 	curr[k] = '\0';
-	setDescriptor(curr, dir);
-
-	for (i=0 ; i<len ; ++i) {
-		if (cmd[i] == '<' || cmd[i] == '>') {
-			if (!flag) {
-				flag = 1;
-
-			}
-		}
-
-	}
+	if (setDescriptor(curr, dir) < 0)
+		return -1;
+	return 0;
 }
 
 
