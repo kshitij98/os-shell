@@ -11,8 +11,13 @@
 #include <errno.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <signal.h>
 #include "builtins.h"
 #include "non-blocking-input.h"
+#include "utilities.h"
+#include "background.h"
+#include "os-shell.h"
+#include <sys/wait.h>
 
 char *builtin_str[] = {
 	"cd",
@@ -20,7 +25,12 @@ char *builtin_str[] = {
 	"exit",
 	"pwd",
 	"ls",
-	"nightswatch"
+	"nightswatch",
+	"jobs",
+	"kjob",
+	"fg",
+	"bg",
+	"overkill"
 };
 
 int builtin_echo(char *arg)
@@ -43,7 +53,7 @@ int builtin_cd(char **arg, int argc)
 		dest_dir = getpwuid(getuid()) -> pw_dir;
 		if (arg[1][0] == '~')
 			strcat(dest_dir, arg[1] + 1);
-		else 
+		else
 			dest_dir = arg[1];
 	}
 
@@ -55,28 +65,6 @@ int builtin_cd(char **arg, int argc)
 	return 0;
 }
 
-
-void itoa(long long num, char **snum)
-{
-	int i = 0;
-	int j = 0;
-	int temp = 0;
-	snum[0][i] = '\0';
-	while (num > 0) {
-		snum[0][i] = num % 10 + '0';
-		num /= 10;
-		i++;
-	}
-
-	while (j < i / 2) {
-		temp = snum[0][j];
-		snum[0][j] = snum[0][i - j - 1];
-		snum[0][i - j - 1] = temp;
-		j++;
-	}
-	snum[0][i] = '\0';
-	return;
-}
 
 int builtin_exit(char **arg, int argc)
 {
@@ -145,7 +133,7 @@ int builtin_ls__print(struct dirent *file, char *flags, char *path, int isFile) 
 	char buf[512];
 	char *fileName = isFile ? path : file -> d_name;
 	if (fileName[0] != '.' || flags['a']) {
-		if (!isFile) {	
+		if (!isFile) {
 			sprintf(buf, "%s/%s", path, fileName);
 			stat(buf, &mystat);
 		}
@@ -163,7 +151,7 @@ int builtin_ls__print(struct dirent *file, char *flags, char *path, int isFile) 
 			printf( (mystat.st_mode & S_IROTH) ? "r" : "-");
 			printf( (mystat.st_mode & S_IWOTH) ? "w" : "-");
 			printf( (mystat.st_mode & S_IXOTH) ? "x" : "-");
-	
+
 			printf("\t%s\t%s", getpwuid(mystat.st_uid)->pw_name,
 			getgrgid(mystat.st_gid)->gr_name);
 			printf("\t%zu\t",mystat.st_size);
@@ -259,7 +247,7 @@ int builtin_nightswatch(char **arg, int argc) {
 	if (strcmp("interrupt", arg[3]) == 0) interrupt = 1;
 	else if (strcmp("dirty", arg[3]) == 0) dirty = 1;
 
-	if (strcmp(arg[1], "-n")) {	
+	if (strcmp(arg[1], "-n")) {
 		fprintf(stderr, "%s", usage);
 		return 1;
 	}
@@ -282,17 +270,17 @@ int builtin_nightswatch(char **arg, int argc) {
 
 			if ((time(NULL) - start) / n > curr) {
 				++curr;
-				
+
 				if (dirty) {
 					file = fopen(memFileName, "r");
-					
+
 					for (i=0 ; i<17 ; ++i)
 						fscanf(file, "%[^\n]%c", line, &ch);
 					printf("%s\n\r", line);
 				}
 				else {
 					file = fopen(intFileName, "r");
-					
+
 					fscanf(file, "%[^\n]%c", line, &ch);
 					printf("%s\n\r", line);
 					fscanf(file, "%[^\n]%c", line, &ch);
@@ -312,13 +300,122 @@ int builtin_nightswatch(char **arg, int argc) {
 	return 0;
 }
 
+int builtin_jobs(char **arg, int argc)
+{
+	print_children(&children);
+	return 0;
+}
+
+int builtin_kjob(char **arg, int argc)
+{
+	if (argc < 3) {
+		fprintf(stderr, "kjob <job number> <signal number>\n");
+		return -1;
+	}
+	pid_t proc_num = atoint(arg[1]);
+	int sig = atoint(arg[2]);
+	child_process *cp = search_index(proc_num, children);
+	if (cp == NULL) {
+		fprintf(stderr, "os-shell: Wrong process number!\n");
+		return -1;
+	}
+	int ret = kill(cp->pid, sig);
+
+	if (ret)
+		fprintf(stderr, "os-shell: %s\n", strerror(errno));
+
+	return ret;
+}
+
+int builtin_fg(char **arg, int argc)
+{
+	if (argc < 2) {
+		fprintf(stderr, "fg <pid>\n");
+		return -1;
+	}
+
+	pid_t proc_num = atoint(arg[1]);
+	child_process *cp = search_index(proc_num, children);
+	int wstatus;
+	if (cp == NULL) {
+		fprintf(stderr, "os-shell: Wrong process number!\n");
+		return -1;
+	}
+	int iprev = tcgetpgrp(0);
+	int oprev = tcgetpgrp(1);
+	int eprev = tcgetpgrp(2);
+	/* tcsetpgrp(0, cp->pid); */
+	/* fprintf(stderr, "1\n"); */
+	/* tcsetpgrp(1, cp->pid); */
+	/* fprintf(stderr, "2\n"); */
+	/* tcsetpgrp(2, cp->pid); */
+	/* fprintf(stderr, "3\n"); */
+	int ret = waitpid(cp->pid, &wstatus, 0);
+	/* fprintf(stderr, "4\n"); */
+	/* tcsetpgrp(0, iprev); */
+	/* fprintf(stderr, "5\n"); */
+	/* tcsetpgrp(1, oprev); */
+	/* fprintf(stderr, "6\n"); */
+	/* tcsetpgrp(2, eprev); */
+	/* fprintf(stderr, "7\n"); */
+
+	if (ret == -1) {
+		fprintf(stderr, "os-shell: %s\n", strerror(errno));
+		return -1;
+	}
+	return 0;
+}
+
+int builtin_bg(char **arg, int argc)
+{
+	if (argc < 2) {
+		fprintf(stderr, "fg <pid>\n");
+		return -1;
+	}
+	pid_t proc_num = atoint(arg[1]);
+	child_process *cp = search_index(proc_num, children);
+
+	if (cp == NULL) {
+		fprintf(stderr, "os-shell: Wrong process number!\n");
+		return -1;
+	}
+	int ret = kill(cp->pid, SIGCONT);
+
+	if (ret)
+		fprintf(stderr, "os-shell: %s\n", strerror(errno));
+
+	return ret;
+}
+
+int builtin_overkill(char **arg, int argc)
+{
+	int ret = 0;
+	child_process *cp = children;
+	while (cp != NULL && ret == 0) {
+		fprintf(stderr, "Killing: %ld\n", cp->pid);
+		ret = kill(cp->pid, SIGKILL);
+		cp = cp->next;
+	}
+
+	if (ret)
+		fprintf(stderr, "os-shell: %s\n", strerror(errno));
+
+	return ret;
+}
+
+
 int (*builtin_call[]) (char**, int) = {
 	&builtin_cd,
 	&builtin_pinfo,
 	&builtin_exit,
 	&builtin_pwd,
 	&builtin_ls,
-	&builtin_nightswatch
+	&builtin_nightswatch,
+	&builtin_jobs,
+	&builtin_kjob,
+	&builtin_fg,
+	&builtin_bg,
+	&builtin_overkill
 };
 
 
