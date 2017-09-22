@@ -10,6 +10,7 @@
 #include "parser.h"
 #include "builtins.h"
 #include "background.h"
+#include <errno.h>
 
 
 #define SHELL_NAME "os-shell"
@@ -43,7 +44,7 @@ void child_handler(int sig)
 	int st;
 	int ret_stat = 0;
 	int flag = 0;
-	proc_id = waitpid(0, &ret_stat, WCONTINUED|WNOHANG|WUNTRACED);
+	proc_id = waitpid(0, &ret_stat, WNOHANG);
 	child_process *curr = children;
 	while (curr != NULL) {
 		if (curr->pid == proc_id) {
@@ -56,7 +57,6 @@ void child_handler(int sig)
 	if (flag == 0)
 		return;
 	if (ret_stat > 255)
-		//fprintf(stderr, "\nos-shell: Command %s not found!\n", curr->name);
 		return;
 	else
 		fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
@@ -66,6 +66,11 @@ void child_handler(int sig)
 }
 
 void interrupt_handler(int sig)
+{
+	return;
+}
+
+static void hdl (int sig)
 {
 	return;
 }
@@ -85,14 +90,19 @@ int main(int argc, char *argv[])
 	int status;
 	char *process_name = SHELL_NAME"\0";
 	int exec_back = 0;
+
 	children = NULL;
 
 	memcpy((void *)argv[0], process_name, sizeof(process_name));
 	prctl(PR_SET_NAME, SHELL_NAME);
 	signal(SIGINT, interrupt_handler);
+	struct sigaction sa;
+	sa.sa_handler = SIG_IGN;
+	sa.sa_flags = SA_RESTART;
+	//	sigaction(SIGTSTP, &sa, NULL);
 	while (1) {
-		print_prompt();
 		signal(SIGCHLD, child_handler);
+		print_prompt();
 		// Get command
 
 		line = line_read();
@@ -101,7 +111,8 @@ int main(int argc, char *argv[])
 			continue;
 
 		if (line[0] == '\0') {
-			(builtin_call[2])(args, 0);
+			printf("\n");
+			continue;
 		}
 
 		unsigned int len;
@@ -153,10 +164,14 @@ int main(int argc, char *argv[])
 					// Error in fork()
 					perror("os-shell");
 				} else {
-					if (exec_back == 0)
+					int status;
+					if (exec_back == 0) {
+						//						waitpid(pid, &status, 0);
 						wait(NULL);
-					else
+					} else {
+						//						waitpid(pid, &status, WNOHANG);
 						child_insert(&children, pid, args[0]);
+					}
 				}
 			}
 		}

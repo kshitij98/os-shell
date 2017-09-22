@@ -17,4 +17,5 @@ int child_insert(child_process**, pid_t, char*);
 int child_remove(child_process**, child_process*);
 void print_children(child_process**);
 child_process* search_index(int, child_process*);
+int empty_child(child_process**);
 #endif

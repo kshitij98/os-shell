@@ -29,7 +29,8 @@ char *builtin_str[] = {
 	"jobs",
 	"kjob",
 	"fg",
-	"bg"
+	"bg",
+	"overkill"
 };
 
 int builtin_echo(char *arg)
@@ -340,8 +341,24 @@ int builtin_fg(char **arg, int argc)
 		fprintf(stderr, "os-shell: Wrong process number!\n");
 		return -1;
 	}
-
+	int iprev = tcgetpgrp(0);
+	int oprev = tcgetpgrp(1);
+	int eprev = tcgetpgrp(2);
+	/* tcsetpgrp(0, cp->pid); */
+	/* fprintf(stderr, "1\n"); */
+	/* tcsetpgrp(1, cp->pid); */
+	/* fprintf(stderr, "2\n"); */
+	/* tcsetpgrp(2, cp->pid); */
+	/* fprintf(stderr, "3\n"); */
 	int ret = waitpid(cp->pid, &wstatus, 0);
+	/* fprintf(stderr, "4\n"); */
+	/* tcsetpgrp(0, iprev); */
+	/* fprintf(stderr, "5\n"); */
+	/* tcsetpgrp(1, oprev); */
+	/* fprintf(stderr, "6\n"); */
+	/* tcsetpgrp(2, eprev); */
+	/* fprintf(stderr, "7\n"); */
+
 	if (ret == -1) {
 		fprintf(stderr, "os-shell: %s\n", strerror(errno));
 		return -1;
@@ -370,6 +387,22 @@ int builtin_bg(char **arg, int argc)
 	return ret;
 }
 
+int builtin_overkill(char **arg, int argc)
+{
+	int ret = 0;
+	child_process *cp = children;
+	while (cp != NULL && ret == 0) {
+		fprintf(stderr, "Killing: %ld\n", cp->pid);
+		ret = kill(cp->pid, SIGKILL);
+		cp = cp->next;
+	}
+
+	if (ret)
+		fprintf(stderr, "os-shell: %s\n", strerror(errno));
+
+	return ret;
+}
+
 
 int (*builtin_call[]) (char**, int) = {
 	&builtin_cd,
@@ -381,7 +414,8 @@ int (*builtin_call[]) (char**, int) = {
 	&builtin_jobs,
 	&builtin_kjob,
 	&builtin_fg,
-	&builtin_bg
+	&builtin_bg,
+	&builtin_overkill
 };
 
 

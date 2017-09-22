@@ -124,3 +124,12 @@ child_process* search_index(int index, child_process *list)
 		return NULL;
 	return itr;
 }
+
+int empty_child(child_process **list)
+{
+	int ret = 0;
+	while(*list != NULL && ret == 0) {
+		ret = child_remove(list, *list);
+	}
+	return ret;
+}
