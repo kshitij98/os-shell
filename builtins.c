@@ -28,7 +28,8 @@ char *builtin_str[] = {
 	"nightswatch",
 	"jobs",
 	"kjob",
-	"fg"
+	"fg",
+	"bg"
 };
 
 int builtin_echo(char *arg)
@@ -348,6 +349,28 @@ int builtin_fg(char **arg, int argc)
 	return 0;
 }
 
+int builtin_bg(char **arg, int argc)
+{
+	if (argc < 2) {
+		fprintf(stderr, "fg <pid>\n");
+		return -1;
+	}
+	pid_t proc_num = atoint(arg[1]);
+	child_process *cp = search_index(proc_num, children);
+
+	if (cp == NULL) {
+		fprintf(stderr, "os-shell: Wrong process number!\n");
+		return -1;
+	}
+	int ret = kill(cp->pid, SIGCONT);
+
+	if (ret)
+		fprintf(stderr, "os-shell: %s\n", strerror(errno));
+
+	return ret;
+}
+
+
 int (*builtin_call[]) (char**, int) = {
 	&builtin_cd,
 	&builtin_pinfo,
@@ -357,7 +380,8 @@ int (*builtin_call[]) (char**, int) = {
 	&builtin_nightswatch,
 	&builtin_jobs,
 	&builtin_kjob,
-	&builtin_fg
+	&builtin_fg,
+	&builtin_bg
 };
 
 

@@ -43,7 +43,7 @@ void child_handler(int sig)
 	int st;
 	int ret_stat = 0;
 	int flag = 0;
-	proc_id = wait(&ret_stat);
+	proc_id = waitpid(0, &ret_stat, WCONTINUED|WNOHANG|WUNTRACED);
 	child_process *curr = children;
 	while (curr != NULL) {
 		if (curr->pid == proc_id) {
