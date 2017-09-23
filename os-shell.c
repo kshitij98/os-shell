@@ -11,7 +11,7 @@
 #include "builtins.h"
 #include "background.h"
 #include <errno.h>
-
+#include "utilities.h"
 
 #define SHELL_NAME "os-shell"
 
@@ -115,13 +115,19 @@ int main(int argc, char *argv[])
 			exec_back = 0;
 			strcpy(dup_line, cmds[j]);
 			args = string_tokenizer(cmds[j], SEP_LIST, ESC, &len);
-
 			if (strcmp(args[len - 1], "&") == 0) {
 				exec_back = 1;
 				args[len - 1] = NULL;
 				--len;
 			}
-
+			if (strcmp(args[0], "setenv") != 0 && strcmp(args[0], "unsetenv") != 0) {
+				for (int t = 0; t < len; t++) {
+					if (args[t][0] == '$') {
+						dup_line = replace_str(dup_line, args[t], getenv(args[t] + 1));
+						args[t] = getenv(args[t] + 1);
+					}
+				}
+			}
 			int i = 0;
 			if (strcmp(args[0], "echo") == 0) {
 				format_line = echo_parser(dup_line);
