@@ -44,24 +44,15 @@ void child_handler(int sig)
 	int st;
 	int ret_stat = 0;
 	int flag = 0;
-	proc_id = waitpid(0, &ret_stat, WNOHANG);
 	child_process *curr = children;
 	while (curr != NULL) {
-		if (curr->pid == proc_id) {
-			flag = 1;
-			break;
+		proc_id = waitpid(curr->pid, &ret_stat, WNOHANG);
+		if (proc_id > 0) {
+			fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
+			child_remove(&children, curr);
 		}
 		curr = curr->next;
 	}
-
-	if (flag == 0)
-		return;
-	if (ret_stat > 255)
-		return;
-	else
-		fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
-	child_remove(&children, curr);
-	print_prompt();
 	return;
 }
 
@@ -92,11 +83,6 @@ int main(int argc, char *argv[])
 	int exec_back = 0;
 
 	children = NULL;
-	/* struct sigaction sigchld_action = { */
-	/* 	.sa_handler = child_handler, */
-	/* 	.sa_flags = SA_NOCLDWAIT */
-	/* }; */
-	/* sigaction(SIGCHLD, &sigchld_action, NULL); */
 	memcpy((void *)argv[0], process_name, sizeof(process_name));
 	prctl(PR_SET_NAME, SHELL_NAME);
 	signal(SIGINT, interrupt_handler);
@@ -157,8 +143,8 @@ int main(int argc, char *argv[])
 
 				if (pid == 0) {
 					i = 0;
-					//if (exec_back == 1)
-					//setpgid(0, 0);
+					if (exec_back == 1)
+						setpgid(0, 0);
 
 
 					execvp(args[0], args);
@@ -180,11 +166,6 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
-		/* pid_t ret = waitpid(-1, NULL, WNOHANG); */
-		/* if (ret > 0) { */
-		/* 	child_process* cp = search(ret, children); */
-		/* 	child_remove(&children, cp); */
-		/* } */
 	}
 
 	return 0;
