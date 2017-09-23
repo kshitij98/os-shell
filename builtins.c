@@ -30,7 +30,9 @@ char *builtin_str[] = {
 	"kjob",
 	"fg",
 	"bg",
-	"overkill"
+	"overkill",
+	"setenv",
+	"unsetenv"
 };
 
 int builtin_echo(char *arg)
@@ -196,12 +198,12 @@ int builtin_ls(char **arg, int argc)
 			strcat(temp, "/");
 			strcat(temp, cwd);
 			strcpy(cwd, temp);
-			// fprintf(stderr, "<%s>\n", cwd);
+			fprintf(stderr, "<%s>\n", cwd);
 		}
 
 		int invalid = chdir(cwd);
-		// if (invalid)
-			// fprintf(stderr, "<%s>", cwd);
+		if (invalid)
+			fprintf(stderr, "<%s>", cwd);
 		if (i > 0 && arg[i][0] != '-')
 			tried = 1;
 		if (!invalid || (!tried && i == argc-1)) {
@@ -333,6 +335,7 @@ int builtin_fg(char **arg, int argc)
 		fprintf(stderr, "fg <pid>\n");
 		return -1;
 	}
+		waitpid(-1, NULL, WNOHANG);
 
 	pid_t proc_num = atoint(arg[1]);
 	child_process *cp = search_index(proc_num, children);
@@ -344,21 +347,26 @@ int builtin_fg(char **arg, int argc)
 	int iprev = tcgetpgrp(0);
 	int oprev = tcgetpgrp(1);
 	int eprev = tcgetpgrp(2);
-	/* tcsetpgrp(0, cp->pid); */
-	/* fprintf(stderr, "1\n"); */
-	/* tcsetpgrp(1, cp->pid); */
-	/* fprintf(stderr, "2\n"); */
-	/* tcsetpgrp(2, cp->pid); */
-	/* fprintf(stderr, "3\n"); */
-	int ret = waitpid(cp->pid, &wstatus, 0);
-	/* fprintf(stderr, "4\n"); */
-	/* tcsetpgrp(0, iprev); */
-	/* fprintf(stderr, "5\n"); */
-	/* tcsetpgrp(1, oprev); */
-	/* fprintf(stderr, "6\n"); */
-	/* tcsetpgrp(2, eprev); */
-	/* fprintf(stderr, "7\n"); */
-
+	signal(SIGTTOU, SIG_IGN);
+	signal(SIGTTIN, SIG_IGN);
+	tcsetpgrp(0, cp->pid);
+	fprintf(stderr, "1\n");
+	tcsetpgrp(1, cp->pid);
+	fprintf(stderr, "2\n");
+	tcsetpgrp(2, cp->pid);
+	fprintf(stderr, "3\n");
+	int ret;
+	//	int ret = kill(cp->pid, SIGCONT);
+	ret = waitpid(cp->pid, &wstatus, 0);
+	fprintf(stderr, "4  %d\n", iprev);
+	tcsetpgrp(0, iprev);
+	fprintf(stderr, "5\n");
+	tcsetpgrp(1, oprev);
+	fprintf(stderr, "6\n");
+	tcsetpgrp(2, eprev);
+	fprintf(stderr, "7\n");
+	signal(SIGTTOU, SIG_DFL);
+	signal(SIGTTIN, SIG_DFL);
 	if (ret == -1) {
 		fprintf(stderr, "os-shell: %s\n", strerror(errno));
 		return -1;
@@ -403,6 +411,49 @@ int builtin_overkill(char **arg, int argc)
 	return ret;
 }
 
+int name_checker(char *str)
+{
+	if (str[0] != '$' || strlen(str) <= 1) {
+		fprintf(stderr, "Invalid name of the variable!\n");
+		return -1;
+	}
+	return 0;
+}
+
+int builtin_setenv(char **arg, int argc)
+{
+	if (argc == 3) {
+		if (name_checker(arg[1]) == -1)
+			return -1;
+		fprintf(stderr, "Checkpost 1\n");
+		setenv(arg[1] + 1, arg[2], 1);
+		fprintf(stderr, "Checkpost 1A\n");
+	} else if (argc == 2) {
+		if (name_checker(arg[1]) == -1)
+			return -1;
+		fprintf(stderr, "Checkpost 2\n");
+		setenv(arg[1] + 1, "", 1);
+		fprintf(stderr, "Checkpost 2A\n");
+	} else {
+		fprintf(stderr, "usage: setenv <name> [value]\n");
+		return -1;
+	}
+	return 0;
+}
+
+
+int builtin_unsetenv(char **arg, int argc)
+{
+	if (argc == 2) {
+		if (name_checker(arg[1]) == -1)
+			return -1;
+		unsetenv(arg[1] + 1);
+	} else {
+		fprintf(stderr, "usage: setenv <name> [value]\n");
+		return -1;
+	}
+	return 0;
+}
 
 int (*builtin_call[]) (char**, int) = {
 	&builtin_cd,
@@ -415,29 +466,7 @@ int (*builtin_call[]) (char**, int) = {
 	&builtin_kjob,
 	&builtin_fg,
 	&builtin_bg,
-	&builtin_overkill
+	&builtin_overkill,
+	&builtin_setenv,
+	&builtin_unsetenv
 };
-
-
-#ifdef _LOCAL_TESTING
-
-int main()
-{
-	char *str;
-	unsigned int len;
-	int i;
-	while (1) {
-		printf(">");
-		str = line_read();
-		char **st = string_tokenizer(str, SEP_LIST, ESC, &len);
-		st[1] = esc_stripper(st[1], ESC);
-		for (i = 0; i < BUILTIN_LEN; i++) {
-			if (strcmp(st[0], builtin_str[i]) == 0) {
-				(builtin_call[i])(st, len);
-			}
-		}
-	}
-	return 0;
-}
-
-#endif

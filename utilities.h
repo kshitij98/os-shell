@@ -3,5 +3,6 @@
 
 void itoa(long long, char**);
 int atoint(char*);
+char* replace_str(char*, char*, char*);
 
 #endif
