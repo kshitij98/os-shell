@@ -36,6 +36,24 @@ char *process_name;
 int exec_back = 0;
 
 
+void init()
+{
+	MAP_STATE['R'] = 0;
+	MAP_STATE['S'] = 1;
+	MAP_STATE['D'] = 2;
+	MAP_STATE['Z'] = 3;
+	MAP_STATE['T'] = 4;
+	MAP_STATE['t'] = 5;
+	MAP_STATE['W'] = 6;
+	MAP_STATE['X'] = 7;
+	MAP_STATE['x'] = 8;
+	MAP_STATE['K'] = 9;
+	MAP_STATE['W'] = 10;
+	MAP_STATE['P'] = 11;
+	return;
+}
+
+
 void child_handler(int sig)
 {
 	pid_t proc_id;
@@ -43,25 +61,23 @@ void child_handler(int sig)
 	int st;
 	int ret_stat = 0;
 	int flag = 0;
-	proc_id = wait(&ret_stat);
 	child_process *curr = children;
 	while (curr != NULL) {
-		if (curr->pid == proc_id) {
-			flag = 1;
-			break;
+		proc_id = waitpid(curr->pid, &ret_stat, WNOHANG);
+		if (proc_id > 0) {
+			fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
+			child_remove(&children, curr);
 		}
 		curr = curr->next;
 	}
-
-	if (flag == 0)
-		return;
-
-	fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
-	print_prompt();
+	return;
+}
+void interrupt_handler(int sig)
+{
 	return;
 }
 
-void interrupt_handler(int sig)
+static void hdl (int sig)
 {
 	return;
 }
@@ -130,6 +146,7 @@ int execute_command(Str cmd) {
 
 int main(int argc, char *argv[])
 {
+	init();
 	os_proc_gid = getgid();
 	os_proc_id = getpid();
 	children = NULL;
