@@ -333,6 +333,7 @@ int builtin_fg(char **arg, int argc)
 		fprintf(stderr, "fg <pid>\n");
 		return -1;
 	}
+	//	waitpid(-1, NULL, WNOHANG);
 
 	pid_t proc_num = atoint(arg[1]);
 	child_process *cp = search_index(proc_num, children);
@@ -344,21 +345,24 @@ int builtin_fg(char **arg, int argc)
 	int iprev = tcgetpgrp(0);
 	int oprev = tcgetpgrp(1);
 	int eprev = tcgetpgrp(2);
-	/* tcsetpgrp(0, cp->pid); */
+	signal(SIGTTOU, SIG_IGN);
+	signal(SIGTTIN, SIG_IGN);
+	tcsetpgrp(0, cp->pid);
 	/* fprintf(stderr, "1\n"); */
-	/* tcsetpgrp(1, cp->pid); */
+	tcsetpgrp(1, cp->pid);
 	/* fprintf(stderr, "2\n"); */
-	/* tcsetpgrp(2, cp->pid); */
+	tcsetpgrp(2, cp->pid);
 	/* fprintf(stderr, "3\n"); */
 	int ret = waitpid(cp->pid, &wstatus, 0);
-	/* fprintf(stderr, "4\n"); */
-	/* tcsetpgrp(0, iprev); */
+	fprintf(stderr, "4  %d\n", iprev);
+	tcsetpgrp(0, iprev);
 	/* fprintf(stderr, "5\n"); */
-	/* tcsetpgrp(1, oprev); */
+	tcsetpgrp(1, oprev);
 	/* fprintf(stderr, "6\n"); */
-	/* tcsetpgrp(2, eprev); */
+	tcsetpgrp(2, eprev);
 	/* fprintf(stderr, "7\n"); */
-
+	signal(SIGTTOU, SIG_DFL);
+	signal(SIGTTIN, SIG_DFL);
 	if (ret == -1) {
 		fprintf(stderr, "os-shell: %s\n", strerror(errno));
 		return -1;
