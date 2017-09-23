@@ -400,7 +400,7 @@ int builtin_overkill(char **arg, int argc)
 	int ret = 0;
 	child_process *cp = children;
 	while (cp != NULL && ret == 0) {
-		fprintf(stderr, "Killing: %ld\n", cp->pid);
+		fprintf(stderr, "Killing: %d\n", cp->pid);
 		ret = kill(cp->pid, SIGKILL);
 		cp = cp->next;
 	}

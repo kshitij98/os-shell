@@ -18,5 +18,6 @@ Str esc_stripper(Str s, char esc);
 char *line_read(void);
 char *echo_parser(char*);
 char *get_flags(char **args, char agrc, char *flags);
+char *setFileDescriptors(char* cmd);
 
 #endif

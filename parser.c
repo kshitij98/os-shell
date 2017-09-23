@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "parser.h"
 
@@ -52,9 +56,9 @@ char *line_read()
 
 unsigned int number_of_elements(const char *s, char *sep, char esc)
 {
-    unsigned int q;
+  unsigned int q;
 	unsigned int e;
-    const char *p;
+  const char *p;
 	int sep_len = strlen(sep);
 	int flag = 0;
 	int j = 0;
@@ -202,6 +206,90 @@ char *get_flags(char **arg, char argc, char *flags) {
 		}
 	}
 	return flags;
+}
+
+int setDescriptor(Str fileName, int dir) {
+	unsigned int temp;
+	char **ret = string_tokenizer(fileName, " ", '\\', &temp);
+	fileName = ret[0];
+	// fprintf(stderr, "setting descriptors for <%s> <%d>\n", fileName, dir);
+
+	if (dir == -1)
+		return 0;
+
+	int file, fd = dir;
+	if (dir == 0)
+		file = open(fileName, O_RDONLY);
+  else if (dir == 1)
+	  file = open(fileName, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+	else if (dir == 2) {
+	  file = open(fileName, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+		fd = 1;
+	}
+	
+	if (!file) {
+		fprintf(stderr, OS_SHELL "%s: No such file or directory\n", fileName);
+		return 1;		
+	}
+
+	if (dup2(file, fd) < 0) {
+		close(file);
+		fprintf(stderr, "file = %d, fd = %d,  Some Error occured\n", file, fd);
+		return 1;
+	}
+	close(file);
+
+	return 0;
+}
+
+
+// 0 <- input
+// 1 <- output
+// 2 <- append
+Str setFileDescriptors(Str cmd) {
+	int i, len = strlen(cmd), flag = 0;
+
+	int dir = -1, k=0;
+	char curr[1000];
+	for (i=0 ; i<len ; ++i) {
+		curr[k] = cmd[i];
+		if (cmd[i] == '<') {
+			// Input file
+			curr[k] = cmd[i] = '\0';
+			setDescriptor(curr, dir);
+			dir = 0;
+			k = -1;
+		}
+		else if (cmd[i] == '>') {
+			if (i < len-1 && cmd[i+1] == '>') {
+				// Append
+				curr[k] = cmd[i] = '\0';
+				setDescriptor(curr, dir);
+				dir = 2;
+				++i;
+			}
+			else {
+				//Truncate
+				curr[k] = cmd[i] = '\0';
+				setDescriptor(curr, dir);
+				dir = 1;
+			}
+			k = -1;
+		}
+		++k;
+	}
+	curr[k] = '\0';
+	setDescriptor(curr, dir);
+
+	for (i=0 ; i<len ; ++i) {
+		if (cmd[i] == '<' || cmd[i] == '>') {
+			if (!flag) {
+				flag = 1;
+
+			}
+		}
+
+	}
 }
 
 
