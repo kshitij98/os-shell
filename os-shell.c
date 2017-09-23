@@ -1,10 +1,12 @@
 #include <stdio.h>
+#include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/prctl.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include "prompt.h"
 #include "parser.h"
@@ -87,7 +89,10 @@ int main(int argc, char *argv[])
 
 		// Execute command
 		for (int j = 0; j < cmd_len; j++) {
-			setFileDescriptors(cmds[j]);
+			int old0 = dup(0);
+			int old1 = dup(1);
+			if (setFileDescriptors(cmds[j]) < 0)
+				continue;
 			// printf("<<%s>>", cmds[j]);
 			flag = 0;
 			exec_back = 0;
@@ -130,7 +135,6 @@ int main(int argc, char *argv[])
 					if (exec_back == 1)
 						setpgid(0, 0);
 
-
 					execvp(args[0], args);
 					fprintf(stderr, "os-shell: command %s not found!\n", args[0]);
 					exit(1);
@@ -144,6 +148,8 @@ int main(int argc, char *argv[])
 						child_insert(&children, pid, args[0]);
 				}
 			}
+			dup2(old0, 0);
+			dup2(old1, 1);
 		}
 	}
 
