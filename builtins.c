@@ -198,12 +198,12 @@ int builtin_ls(char **arg, int argc)
 			strcat(temp, "/");
 			strcat(temp, cwd);
 			strcpy(cwd, temp);
-			fprintf(stderr, "<%s>\n", cwd);
+			//			fprintf(stderr, "<%s>\n", cwd);
 		}
 
 		int invalid = chdir(cwd);
-		if (invalid)
-			fprintf(stderr, "<%s>", cwd);
+		//		if (invalid)
+		//	fprintf(stderr, "<%s>", cwd);
 		if (i > 0 && arg[i][0] != '-')
 			tried = 1;
 		if (!invalid || (!tried && i == argc-1)) {
