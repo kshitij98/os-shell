@@ -351,23 +351,25 @@ int builtin_fg(char **arg, int argc)
 	signal(SIGTTOU, SIG_IGN);
 	signal(SIGTTIN, SIG_IGN);
 	tcsetpgrp(0, cp->pid);
-	if (TESTING) fprintf(stderr, "1\n");
+
+	if (TESTING) fprintf(stderr, "1q\n");
 	tcsetpgrp(1, cp->pid);
-	if (TESTING) fprintf(stderr, "2\n");
+	if (TESTING) fprintf(stderr, "2q\n");
 	tcsetpgrp(2, cp->pid);
-	if (TESTING) fprintf(stderr, "3 %d\n", tcgetpgrp(0));
+	if (TESTING) fprintf(stderr, "3q %d\n", tcgetpgrp(0));
 	int ret;
 	ret = kill(cp->pid, SIGCONT);
-	ret = waitpid(cp->pid, &wstatus, 0);
+	ret = waitpid(cp->pid, &wstatus, WUNTRACED);
 	//ret = kill(cp->pid, SIGKILL);
 	//ret = wait(NULL);
-	if (TESTING) fprintf(stderr, "4  %d\n", iprev);
+
+	if (TESTING) fprintf(stderr, "4q  %d\n", iprev);
 	tcsetpgrp(0, iprev);
-	if (TESTING) fprintf(stderr, "5\n");
+	if (TESTING) fprintf(stderr, "5q\n");
 	tcsetpgrp(1, oprev);
-	if (TESTING) fprintf(stderr, "6\n");
+	if (TESTING) fprintf(stderr, "6q\n");
 	tcsetpgrp(2, eprev);
-	if (TESTING) fprintf(stderr, "7\n");
+	if (TESTING) fprintf(stderr, "7q\n");
 	signal(SIGTTOU, SIG_DFL);
 	signal(SIGTTIN, SIG_DFL);
 	if (ret == -1) {
