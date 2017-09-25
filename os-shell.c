@@ -84,8 +84,8 @@ void interrupt_handler(int sig)
 static void zparent_handler(int sig)
 {
 	fprintf(stderr, "Parent Handler..\n");
-	pid_t ppid = tcgetpgrp(0);
-	//	child_insert(&children, ppid, "Process");
+	pid_t ppid = waitpid(-1, NULL, WNOHANG);//tcgetpgrp(0);
+	child_insert(&children, ppid, "Process");
 	//	signal(SIGTTOU, SIG_IGN);
 	//	signal(SIGTTIN, SIG_IGN);
 	//	tcsetpgrp(0, ppid);
@@ -104,6 +104,7 @@ static void zchild_handler(int sig)
 {
 	child_insert(&children, getpid(), "Process");
 	fprintf(stderr, "Child Handler Z\n");
+	raise(SIGCONT);
 	raise(SIGTSTP);
 	return;
 }
