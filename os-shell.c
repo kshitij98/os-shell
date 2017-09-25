@@ -62,9 +62,9 @@ void child_handler(int sig)
 	int ret_stat = 0;
 	int flag = 0;
 	child_process *curr = children;
-	fprintf(stderr, "XXX\n");
+
 	while (curr != NULL) {
-		fprintf(stderr, "YYY\n");
+
 		proc_id = waitpid(curr->pid, &ret_stat, WNOHANG);
 		if (proc_id > 0) {
 			fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
@@ -164,7 +164,7 @@ void unregister_handlers()
 	sa.sa_handler = zchild_handler;
 	sa.sa_flags = SA_RESTART;
 	sigaction(SIGTSTP, &sa, NULL);
-	//signal(SIGTSTP, zchild_handler);
+
 	signal(SIGCHLD, SIG_DFL);
 	return;
 }
@@ -237,6 +237,8 @@ int main(int argc, char *argv[])
 
 		// Execute command
 		for (int i=0 ; i<cmd_len ; ++i) {
+			fflush(stdin);
+			fflush(stdout);
 			int old0 = dup(0);
 			int old1 = dup(1);
 			exec_back = 0;

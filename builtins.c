@@ -347,6 +347,7 @@ int builtin_fg(char **arg, int argc)
 	int iprev = tcgetpgrp(0);
 	int oprev = tcgetpgrp(1);
 	int eprev = tcgetpgrp(2);
+	fprintf(stderr, "inp: %d, out: %d, err: %d\n", iprev, oprev, eprev);
 	signal(SIGTTOU, SIG_IGN);
 	signal(SIGTTIN, SIG_IGN);
 	tcsetpgrp(0, cp->pid);
@@ -354,12 +355,12 @@ int builtin_fg(char **arg, int argc)
 	tcsetpgrp(1, cp->pid);
 	fprintf(stderr, "2\n");
 	tcsetpgrp(2, cp->pid);
-	fprintf(stderr, "3\n");
+	fprintf(stderr, "3 %d\n", tcgetpgrp(0));
 	int ret;
 	ret = kill(cp->pid, SIGCONT);
 	ret = waitpid(cp->pid, &wstatus, 0);
-	//	ret = kill(cp->pid, SIGKILL);
-	//	ret = wait(NULL);
+	//ret = kill(cp->pid, SIGKILL);
+	//ret = wait(NULL);
 	fprintf(stderr, "4  %d\n", iprev);
 	tcsetpgrp(0, iprev);
 	fprintf(stderr, "5\n");
@@ -367,8 +368,8 @@ int builtin_fg(char **arg, int argc)
 	fprintf(stderr, "6\n");
 	tcsetpgrp(2, eprev);
 	fprintf(stderr, "7\n");
-	//	signal(SIGTTOU, SIG_DFL);
-	//signal(SIGTTIN, SIG_DFL);
+	signal(SIGTTOU, SIG_DFL);
+	signal(SIGTTIN, SIG_DFL);
 	if (ret == -1) {
 		fprintf(stderr, "os-shell: %s\n", strerror(errno));
 		return -1;
