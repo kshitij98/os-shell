@@ -311,7 +311,7 @@ int builtin_jobs(char **arg, int argc)
 int builtin_kjob(char **arg, int argc)
 {
 	if (argc < 3) {
-		fprintf(stderr, "kjob <job number> <signal number>\n");
+		fprintf(stderr, "Usage:\n\rkjob <job number> <signal number>\n");
 		return -1;
 	}
 	pid_t proc_num = atoint(arg[1]);
@@ -332,7 +332,7 @@ int builtin_kjob(char **arg, int argc)
 int builtin_fg(char **arg, int argc)
 {
 	if (argc < 2) {
-		fprintf(stderr, "fg <pid>\n");
+		fprintf(stderr, "Usage:\n\rfg <pid>\n");
 		return -1;
 	}
 		waitpid(-1, NULL, WNOHANG);
@@ -351,23 +351,25 @@ int builtin_fg(char **arg, int argc)
 	signal(SIGTTOU, SIG_IGN);
 	signal(SIGTTIN, SIG_IGN);
 	tcsetpgrp(0, cp->pid);
-	fprintf(stderr, "1q\n");
+
+	if (TESTING) fprintf(stderr, "1q\n");
 	tcsetpgrp(1, cp->pid);
-	fprintf(stderr, "2q\n");
+	if (TESTING) fprintf(stderr, "2q\n");
 	tcsetpgrp(2, cp->pid);
-	fprintf(stderr, "3q %d\n", tcgetpgrp(0));
+	if (TESTING) fprintf(stderr, "3q %d\n", tcgetpgrp(0));
 	int ret;
 	ret = kill(cp->pid, SIGCONT);
 	ret = waitpid(cp->pid, &wstatus, WUNTRACED);
 	//ret = kill(cp->pid, SIGKILL);
 	//ret = wait(NULL);
-	fprintf(stderr, "4q  %d\n", iprev);
+
+	if (TESTING) fprintf(stderr, "4q  %d\n", iprev);
 	tcsetpgrp(0, iprev);
-	fprintf(stderr, "5q\n");
+	if (TESTING) fprintf(stderr, "5q\n");
 	tcsetpgrp(1, oprev);
-	fprintf(stderr, "6q\n");
+	if (TESTING) fprintf(stderr, "6q\n");
 	tcsetpgrp(2, eprev);
-	fprintf(stderr, "7q\n");
+	if (TESTING) fprintf(stderr, "7q\n");
 	signal(SIGTTOU, SIG_DFL);
 	signal(SIGTTIN, SIG_DFL);
 	if (ret == -1) {
@@ -380,7 +382,7 @@ int builtin_fg(char **arg, int argc)
 int builtin_bg(char **arg, int argc)
 {
 	if (argc < 2) {
-		fprintf(stderr, "fg <pid>\n");
+		fprintf(stderr, "Usage:\n\rfg <pid>\n");
 		return -1;
 	}
 	pid_t proc_num = atoint(arg[1]);
@@ -428,17 +430,17 @@ int builtin_setenv(char **arg, int argc)
 	if (argc == 3) {
 		if (name_checker(arg[1]) == -1)
 			return -1;
-		fprintf(stderr, "Checkpost 1\n");
+		if (TESTING) fprintf(stderr, "Checkpost 1\n");
 		setenv(arg[1] + 1, arg[2], 1);
-		fprintf(stderr, "Checkpost 1A\n");
+		if (TESTING) fprintf(stderr, "Checkpost 1A\n");
 	} else if (argc == 2) {
 		if (name_checker(arg[1]) == -1)
 			return -1;
-		fprintf(stderr, "Checkpost 2\n");
+		if (TESTING) fprintf(stderr, "Checkpost 2\n");
 		setenv(arg[1] + 1, "", 1);
-		fprintf(stderr, "Checkpost 2A\n");
+		if (TESTING) fprintf(stderr, "Checkpost 2A\n");
 	} else {
-		fprintf(stderr, "usage: setenv <name> [value]\n");
+		fprintf(stderr, "Usage:\n\rsetenv <name> [value]\n");
 		return -1;
 	}
 	return 0;
@@ -452,7 +454,7 @@ int builtin_unsetenv(char **arg, int argc)
 			return -1;
 		unsetenv(arg[1] + 1);
 	} else {
-		fprintf(stderr, "usage: setenv <name> [value]\n");
+		fprintf(stderr, "Usage:\n\rsetenv <name> [value]\n");
 		return -1;
 	}
 	return 0;

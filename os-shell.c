@@ -77,24 +77,28 @@ void child_handler(int sig)
 }
 void interrupt_handler(int sig)
 {
-	fprintf(stderr, "Ctrl+C Handler..\n");
+	printf("\n");
+	print_prompt();
+	if (TESTING) fprintf(stderr, "Ctrl+C Handler..\n");
 	return;
 }
 
 static void zparent_handler(int sig)
 {
-	fprintf(stderr, "Parent Handler..\n");
+	if (TESTING) fprintf(stderr, "Parent Handler..\n");
+
 	pid_t ppid = waitpid(-1, NULL, WNOHANG);//tcgetpgrp(0);
 	child_insert(&children, ppid, "Process");
+
 	//	signal(SIGTTOU, SIG_IGN);
 	//	signal(SIGTTIN, SIG_IGN);
 	//	tcsetpgrp(0, ppid);
-	fprintf(stderr, "1\n");
+	if (TESTING) fprintf(stderr, "1\n");
 	//	tcsetpgrp(1, ppid);
-	fprintf(stderr, "2\n");
+	if (TESTING) fprintf(stderr, "2\n");
 	//	tcsetpgrp(2, ppid);
 	//	kill(ppid, SIGTSTP);
-	fprintf(stderr, "3\n");
+	if (TESTING) fprintf(stderr, "3\n");
 	//	child_insert(&children, ppid, "Process");
 	return;
 }
@@ -103,49 +107,11 @@ static void zparent_handler(int sig)
 static void zchild_handler(int sig)
 {
 	child_insert(&children, getpid(), "Process");
-	fprintf(stderr, "Child Handler Z\n");
-	raise(SIGCONT);
+
+	if (TESTING) fprintf(stderr, "Child Handler Z\n");
+	//	raise(SIGCONT);
 	raise(SIGTSTP);
 	return;
-}
-
-int execute_builtins(Str cmd) {
-	int old0 = dup(0);
-	int old1 = dup(1);
-	unsigned int len;
-	if (setFileDescriptors(cmd) < 0)
-		return 0;
-	int flag = 0;
-
-	strcpy(dup_line, cmd);
-	args = string_tokenizer(cmd, SEP_LIST, ESC, &len);
-
-	if (strcmp(args[0], "setenv") != 0 && strcmp(args[0], "unsetenv") != 0) {
-		for (int t = 0; t < len; t++) {
-			if (args[t][0] == '$') {
-				dup_line = replace_str(dup_line, args[t], getenv(args[t] + 1));
-				args[t] = getenv(args[t] + 1);
-			}
-		}
-	}
-	int i = 0;
-	if (strcmp(args[0], "echo") == 0) {
-		flag = 1;
-		format_line = echo_parser(dup_line);
-		builtin_echo(format_line);
-		return 1;
-	}
-	for (i = 0; i < BUILTIN_LEN; i++) {
-		if (strcmp(builtin_str[i], args[0]) == 0) {
-			flag = 1;
-			(builtin_call[i])(args, len);
-		}
-	}
-
-	dup2(old0, 0);
-	dup2(old1, 1);
-
-	return flag;
 }
 
 void register_handlers()
@@ -171,41 +137,65 @@ void unregister_handlers()
 }
 
 int execute_command(Str cmd) {
-	int i;
 	int old0 = dup(0);
 	int old1 = dup(1);
 	unsigned int len;
-
 	if (setFileDescriptors(cmd) < 0)
 		return -1;
+	flag = 0;
+	exec_back = 0;
+	strcpy(dup_line, cmd);
 	args = string_tokenizer(cmd, SEP_LIST, ESC, &len);
 	if (strcmp(args[len - 1], "&") == 0) {
 		exec_back = 1;
 		args[len - 1] = NULL;
 		--len;
 	}
-
-	pid = fork();
-	if (pid == 0) {
-		i = 0;
-		unregister_handlers();
-		if (exec_back == 1)
-			setpgid(0, 0);
-		execvp(args[0], args);
-		fprintf(stderr, "os-shell: command %s not found!\n", args[0]);
-		exit(1);
-	} else if (pid < 0) {
-		// Error in fork()
-		perror("os-shell");
-	} else {
-		if (exec_back == 0)
-			waitpid(-1, NULL, WUNTRACED);
-		else
-			child_insert(&children, pid, args[0]);
+	if (strcmp(args[0], "setenv") != 0 && strcmp(args[0], "unsetenv") != 0) {
+		for (int t = 0; t < len; t++) {
+			if (args[t][0] == '$') {
+				dup_line = replace_str(dup_line, args[t], getenv(args[t] + 1));
+				args[t] = getenv(args[t] + 1);
+			}
+		}
 	}
-
+	int i = 0;
+	if (strcmp(args[0], "echo") == 0) {
+		format_line = echo_parser(dup_line);
+		builtin_echo(format_line);
+		flag = 1;
+	}
+	for (i = 0; i < BUILTIN_LEN; i++) {
+		// if (TESTING) fprintf(stderr, "<%s> AAAA\n", builtin_str[i]);
+		if (strcmp(builtin_str[i], args[0]) == 0) {
+			flag = 1;
+			(builtin_call[i])(args, len);
+		}
+	}
+	if (flag == 0) {
+		// forking the process
+		pid = fork();
+		if (pid == 0) {
+			i = 0;
+			unregister_handlers();
+			if (exec_back == 1)
+				setpgid(0, 0);
+			execvp(args[0], args);
+			fprintf(stderr, "os-shell: command %s not found!\n", args[0]);
+			exit(1);
+		} else if (pid < 0) {
+			// Error in fork()
+			perror("os-shell");
+		} else {
+			if (exec_back == 0)
+				waitpid(-1, NULL, WUNTRACED);
+			else
+				child_insert(&children, pid, args[0]);
+		}
+	}
 	dup2(old0, 0);
 	dup2(old1, 1);
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -222,9 +212,10 @@ int main(int argc, char *argv[])
 	prctl(PR_SET_NAME, SHELL_NAME);
 	register_handlers();
 	while (1) {
+		// Print Prompt
 		print_prompt();
-		// Get command
 
+		// Get command
 		line = line_read();
 
 		if (line[0] == '\n')
@@ -261,8 +252,7 @@ int main(int argc, char *argv[])
 							exit(1);
 						for(int c=0 ; c<2*pipe_counter ; ++c)
 							close(fds[c]);
-						if (execute_builtins(piped_cmds[j]) == 1);
-						else execute_command(piped_cmds[j]);
+						execute_command(piped_cmds[j]);
 						exit(1);
 					}
 					k+=2;
@@ -272,8 +262,7 @@ int main(int argc, char *argv[])
 				for(int j=0 ; j<pipe_len ; ++j)
 					wait(&status);
 			} else {
-				if (execute_builtins(piped_cmds[0]) == 1);
-				else execute_command(dup_line_cmd);
+				execute_command(dup_line_cmd);
 			}
 
 			dup2(old0, 0);
