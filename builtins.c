@@ -356,8 +356,10 @@ int builtin_fg(char **arg, int argc)
 	tcsetpgrp(2, cp->pid);
 	fprintf(stderr, "3\n");
 	int ret;
-	//	int ret = kill(cp->pid, SIGCONT);
+	ret = kill(cp->pid, SIGCONT);
 	ret = waitpid(cp->pid, &wstatus, 0);
+	//	ret = kill(cp->pid, SIGKILL);
+	//	ret = wait(NULL);
 	fprintf(stderr, "4  %d\n", iprev);
 	tcsetpgrp(0, iprev);
 	fprintf(stderr, "5\n");
@@ -365,8 +367,8 @@ int builtin_fg(char **arg, int argc)
 	fprintf(stderr, "6\n");
 	tcsetpgrp(2, eprev);
 	fprintf(stderr, "7\n");
-	signal(SIGTTOU, SIG_DFL);
-	signal(SIGTTIN, SIG_DFL);
+	//	signal(SIGTTOU, SIG_DFL);
+	//signal(SIGTTIN, SIG_DFL);
 	if (ret == -1) {
 		fprintf(stderr, "os-shell: %s\n", strerror(errno));
 		return -1;

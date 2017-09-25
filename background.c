@@ -77,7 +77,6 @@ void print_children(child_process **list)
 	int proc_id;
 	char *pid = calloc(10, sizeof(char));
 	char status[10];
-
 	while (itr != NULL && itr->next != NULL) {
 		itr = itr->next;
 	}
@@ -88,11 +87,18 @@ void print_children(child_process **list)
 		strcat(path, pid);
 		strcat(path, "/stat");
 		FILE *filp = fopen(path, "r");
+		if (filp == NULL) {
+			child_process* temp = itr->prev;
+			child_remove(list, itr);
+			itr = temp;
+			continue;
+		}
 		fscanf(filp, "%*s %*s %s", status);
 		printf("[%d]\t[%s]\t%s [%d]\n", ++count, getStatus(status),itr->name, itr->pid);
 		fclose(filp);
 		itr = itr->prev;
 	}
+
 	free(pid);
 	return;
 }

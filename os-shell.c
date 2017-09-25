@@ -62,7 +62,9 @@ void child_handler(int sig)
 	int ret_stat = 0;
 	int flag = 0;
 	child_process *curr = children;
+	fprintf(stderr, "XXX\n");
 	while (curr != NULL) {
+		fprintf(stderr, "YYY\n");
 		proc_id = waitpid(curr->pid, &ret_stat, WNOHANG);
 		if (proc_id > 0) {
 			fprintf(stderr, "\nProcess with ID: %d\tNAME: %s has exited with code: %d\n", proc_id, curr->name, ret_stat);
@@ -75,11 +77,34 @@ void child_handler(int sig)
 }
 void interrupt_handler(int sig)
 {
+	fprintf(stderr, "Ctrl+C Handler..\n");
 	return;
 }
 
-static void hdl (int sig)
+static void zparent_handler(int sig)
 {
+	fprintf(stderr, "Parent Handler..\n");
+	pid_t ppid = tcgetpgrp(0);
+	//	child_insert(&children, ppid, "Process");
+	//	signal(SIGTTOU, SIG_IGN);
+	//	signal(SIGTTIN, SIG_IGN);
+	//	tcsetpgrp(0, ppid);
+	fprintf(stderr, "1\n");
+	//	tcsetpgrp(1, ppid);
+	fprintf(stderr, "2\n");
+	//	tcsetpgrp(2, ppid);
+	//	kill(ppid, SIGTSTP);
+	fprintf(stderr, "3\n");
+	//	child_insert(&children, ppid, "Process");
+	return;
+}
+
+
+static void zchild_handler(int sig)
+{
+	child_insert(&children, getpid(), "Process");
+	fprintf(stderr, "Child Handler Z\n");
+	raise(SIGTSTP);
 	return;
 }
 
@@ -122,6 +147,28 @@ int execute_builtins(Str cmd) {
 	return flag;
 }
 
+void register_handlers()
+{
+	signal(SIGINT, interrupt_handler);
+	struct sigaction sa;
+	sa.sa_handler = zparent_handler;
+	sa.sa_flags = SA_RESTART;
+	sigaction(SIGTSTP, &sa, NULL);
+	signal(SIGCHLD, child_handler);
+}
+
+void unregister_handlers()
+{
+	signal(SIGINT, SIG_DFL);
+	struct sigaction sa;
+	sa.sa_handler = zchild_handler;
+	sa.sa_flags = SA_RESTART;
+	sigaction(SIGTSTP, &sa, NULL);
+	//signal(SIGTSTP, zchild_handler);
+	signal(SIGCHLD, SIG_DFL);
+	return;
+}
+
 int execute_command(Str cmd) {
 	int i;
 	int old0 = dup(0);
@@ -140,6 +187,7 @@ int execute_command(Str cmd) {
 	pid = fork();
 	if (pid == 0) {
 		i = 0;
+		unregister_handlers();
 		if (exec_back == 1)
 			setpgid(0, 0);
 		execvp(args[0], args);
@@ -150,7 +198,7 @@ int execute_command(Str cmd) {
 		perror("os-shell");
 	} else {
 		if (exec_back == 0)
-			wait(NULL);
+			waitpid(-1, NULL, WUNTRACED);
 		else
 			child_insert(&children, pid, args[0]);
 	}
@@ -171,26 +219,25 @@ int main(int argc, char *argv[])
 
 	memcpy((void *)argv[0], process_name, sizeof(process_name));
 	prctl(PR_SET_NAME, SHELL_NAME);
-	signal(SIGINT, interrupt_handler);
-	struct sigaction sa;
-	sa.sa_handler = SIG_IGN;
-	sa.sa_flags = SA_RESTART;
-	sigaction(SIGTSTP, &sa, NULL);
-
+	//	signal(SIGINT, interrupt_handler);
+	//	struct sigaction sa;
+	//	sa.sa_handler = interrupt_handler;
+	//	sa.sa_flags = SA_RESTART;
+	//	sigaction(SIGTSTP, &sa, NULL);
+	register_handlers();
 	while (1) {
 		print_prompt();
-		signal(SIGCHLD, child_handler);
+		//		signal(SIGCHLD, child_handler);
 		// Get command
 
 		line = line_read();
 
 		if (line[0] == '\n')
 			continue;
-
 		if (line[0] == '\0') {
-			(builtin_call[2])(args, 0);
+			printf("\n");
+			continue;
 		}
-
 		unsigned int cmd_len;
 		cmds = string_tokenizer(line, ";", ESC, &cmd_len);
 
@@ -210,6 +257,7 @@ int main(int argc, char *argv[])
 				for (int j=0 ; j<pipe_len ; ++j) {
 					if((pid = fork()) < 0) exit(1);
 					else if (pid == 0) {
+						unregister_handlers();
 						if(j < pipe_counter && dup2(fds[k + 1], 1) < 0)
 							exit(1);
 						if(k != 0 && dup2(fds[k-2], 0) < 0)
@@ -230,7 +278,7 @@ int main(int argc, char *argv[])
 				if (execute_builtins(piped_cmds[0]) == 1);
 				else execute_command(dup_line_cmd);
 			}
-
+			//			unregister_handlers();
 			dup2(old0, 0);
 			dup2(old1, 1);
 		}
