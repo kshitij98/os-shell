@@ -219,15 +219,9 @@ int main(int argc, char *argv[])
 
 	memcpy((void *)argv[0], process_name, sizeof(process_name));
 	prctl(PR_SET_NAME, SHELL_NAME);
-	//	signal(SIGINT, interrupt_handler);
-	//	struct sigaction sa;
-	//	sa.sa_handler = interrupt_handler;
-	//	sa.sa_flags = SA_RESTART;
-	//	sigaction(SIGTSTP, &sa, NULL);
 	register_handlers();
 	while (1) {
 		print_prompt();
-		//		signal(SIGCHLD, child_handler);
 		// Get command
 
 		line = line_read();
@@ -278,7 +272,7 @@ int main(int argc, char *argv[])
 				if (execute_builtins(piped_cmds[0]) == 1);
 				else execute_command(dup_line_cmd);
 			}
-			//			unregister_handlers();
+
 			dup2(old0, 0);
 			dup2(old1, 1);
 		}

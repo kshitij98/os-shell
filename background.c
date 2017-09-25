@@ -26,8 +26,6 @@ char* STATE[] = {
 
 int MAP_STATE[256];
 
-
-
 int child_insert(child_process **list, pid_t proc_id, char *name)
 {
 	child_process *temp = malloc(sizeof(child_process));
